@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 GeoGuessr - Раунд {{ round_number }}/5</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #1a1a1a;
+        }
+
+        .game-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .pano-wrapper {
+            flex: 7;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        #pano {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-wrapper {
+            flex: 3;
+            height: 100vh;
+            position: relative;
+            border-left: 3px solid #333;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.3);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .guess-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 35%;
+            transform: translateX(-50%);
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .guess-btn:hover {
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .guess-btn:disabled {
+            background: linear-gradient(135deg, #555 0%, #777 100%);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            cursor: not-allowed;
+            opacity: 0.5;
+            transform: translateX(-50%);
+            border-color: transparent;
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .round-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .score-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .location-hint {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+        }
+
+        .map-hint {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            color: rgba(255,255,255,0.6);
+            background: rgba(0,0,0,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .next-round-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #2ed573 0%, #26a65b 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 0 10px 30px rgba(46, 213, 115, 0.4);
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .next-round-btn:hover {
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 15px 40px rgba(46, 213, 115, 0.5);
+        }
+
+        .finish-btn {
+            background: linear-gradient(135deg, #ffa502 0%, #ff7f50 100%);
+            box-shadow: 0 10px 30px rgba(255, 165, 2, 0.4);
+        }
+
+        .pano-error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            background: rgba(0,0,0,0.7);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        /* Индикатор расстояния */
+        .distance-indicator {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="pano-wrapper">
+            <div id="pano"></div>
+        </div>
+
+        <div class="map-wrapper">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <div class="info-panel">
+        <span>🌍 GeoGuessr</span>
+        <span class="round-badge">Раунд {{ round_number }}/5</span>
+        <span class="score-badge">🏆 <span id="totalScore">{{ total_score }}</span></span>
+    </div>
+
+    {% if location_hint %}
+    <div class="location-hint">
+        📍 {{ location_hint }}
+    </div>
+    {% endif %}
+
+    <button class="guess-btn" id="guessBtn" disabled>🎯 Угадать место</button>
+    <button class="next-round-btn" id="nextRoundBtn" onclick="nextRound()">➡️ Следующий раунд</button>
+
+    <div class="map-hint">
+        🖱️ Кликните на карте, чтобы отметить место
+    </div>
+
+    <div class="distance-indicator" id="distanceIndicator"></div>
+
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_api_key }}&lang=ru_RU"></script>
+
+    <script>
+        const PANO_LAT = {{ lat }};
+        const PANO_LON = {{ lon }};
+        const REAL_COORDS = [{{ lat }}, {{ lon }}];
+        const LOCATION_ID = {{ location_id }};
+        const CURRENT_ROUND = {{ round_number }};
+        const TOTAL_SCORE = {{ total_score }};
+
+        let userCoords = null;
+        let userMarker = null;
+        let map;
+        let answerMarker = null;
+        let resultLine = null;
+        let roundCompleted = false;
+        let currentDistance = 0;
+
+        ymaps.ready(() => {
+            // Панорама
+            ymaps.panorama.createPlayer('pano', [PANO_LAT, PANO_LON], {
+                layer: 'yandex#panorama',
+                controls: [],
+                suppressMapOpenBlock: true
+            }).catch(() => {
+                document.getElementById('pano').innerHTML =
+                    '<div class="pano-error">❌ Панорама не найдена<br><span style="font-size: 14px; opacity: 0.7;">Загружаем другую локацию...</span></div>';
+                setTimeout(() => location.reload(), 2000);
+            });
+
+            // Мини-карта
+            map = new ymaps.Map('map', {
+                center: [55.76, 37.64],
+                zoom: 10,
+                controls: ['zoomControl']
+            });
+
+            map.controls.get('zoomControl').options.set({
+                size: 'large',
+                position: { top: 20, right: 20 }
+            });
+
+            // Клик по карте
+            map.events.add('click', (e) => {
+                if (roundCompleted) return;
+
+                userCoords = e.get('coords');
+
+                if (userMarker) {
+                    userMarker.geometry.setCoordinates(userCoords);
+                } else {
+                    userMarker = new ymaps.Placemark(userCoords, {}, {
+                        preset: 'islands#redIcon',
+                        iconColor: '#ff4757'
+                    });
+                    map.geoObjects.add(userMarker);
+                }
+
+                // Показываем примерное расстояние (опционально)
+                const dist = ymaps.coordSystem.geo.getDistance(userCoords, REAL_COORDS);
+                currentDistance = dist;
+
+                document.getElementById('guessBtn').disabled = false;
+            });
+
+            // Кнопка "Угадать"
+            document.getElementById('guessBtn').onclick = () => {
+                if (!userCoords || roundCompleted) return;
+
+                roundCompleted = true;
+
+                // Зелёная метка
+                answerMarker = new ymaps.Placemark(REAL_COORDS, {}, {
+                    preset: 'islands#greenIcon',
+                    iconColor: '#2ed573'
+                });
+                map.geoObjects.add(answerMarker);
+
+                // Красная линия
+                resultLine = new ymaps.Polyline(
+                    [userCoords, REAL_COORDS],
+                    {},
+                    {
+                        strokeColor: '#ff6b81',
+                        strokeWidth: 4,
+                        strokeOpacity: 0.8
+                    }
+                );
+                map.geoObjects.add(resultLine);
+
+                // Зум
+                map.setBounds(map.geoObjects.getBounds(), {
+                    zoomMargin: 80,
+                    checkZoomRange: true
+                });
+
+                // Расчёт расстояния и очков (НОВАЯ ФОРМУЛА)
+                const distance = ymaps.coordSystem.geo.getDistance(userCoords, REAL_COORDS);
+                const roundScore = calculateScore(distance);
+
+                // Отправка результата
+                submitResult(userCoords[0], userCoords[1], distance, roundScore);
+
+                // Показ результата
+                showResult(distance, roundScore);
+
+                document.getElementById('guessBtn').style.display = 'none';
+
+                // Меняем кнопку в зависимости от раунда
+                const nextBtn = document.getElementById('nextRoundBtn');
+                if (CURRENT_ROUND >= 5) {
+                    nextBtn.textContent = '🏁 Завершить игру';
+                    nextBtn.classList.add('finish-btn');
+                    nextBtn.onclick = () => window.location.href = '/game_over';
+                } else {
+                    nextBtn.textContent = '➡️ Следующий раунд';
+                    nextBtn.onclick = () => window.location.href = '/game';
+                }
+                nextBtn.style.display = 'block';
+            };
+        });
+
+        // НОВАЯ ФОРМУЛА ПОДСЧЁТА ОЧКОВ
+        function calculateScore(distance) {
+            const distanceKm = distance / 1000;
+
+            if (distanceKm >= 10) {
+                return 0;  // Больше 10 км = 0 очков
+            } else if (distanceKm <= 0.1) {
+                return 5000;  // Меньше 100 метров = максимум
+            } else {
+                // Линейное падение от 5000 до 0 на промежутке 0.1-10 км
+                return Math.round(5000 * (1 - (distanceKm - 0.1) / 9.9));
+            }
+        }
+
+        function submitResult(guessLat, guessLon, distance, score) {
+            fetch('/submit_guess', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    location_id: LOCATION_ID,
+                    guess_lat: guessLat,
+                    guess_lon: guessLon,
+                    distance: Math.round(distance),
+                    score: score
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Результат сохранён:', data);
+                document.getElementById('totalScore').textContent = data.total_score;
+            })
+            .catch(error => console.error('Ошибка:', error));
+        }
+
+        function showResult(distance, score) {
+            const distanceKm = (distance / 1000).toFixed(2);
+            const accuracy = Math.max(0, 100 - (distanceKm / 10) * 100).toFixed(1);
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px 50px;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+                z-index: 2000;
+                text-align: center;
+                backdrop-filter: blur(10px);
+                border: 2px solid rgba(255,255,255,0.2);
+                animation: slideIn 0.3s ease;
+            `;
+
+            let scoreMessage = '';
+            if (score === 0) {
+                scoreMessage = '😢 Слишком далеко!';
+            } else if (score >= 4000) {
+                scoreMessage = '🎯 Отлично!';
+            } else if (score >= 2000) {
+                scoreMessage = '👍 Хорошо!';
+            } else {
+                scoreMessage = '👌 Неплохо';
+            }
+
+            overlay.innerHTML = `
+                <h2 style="margin: 0 0 20px 0; font-size: 28px;">${scoreMessage}</h2>
+                <div style="font-size: 48px; font-weight: bold; margin: 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    +${score}
+                </div>
+                <div style="font-size: 16px; opacity: 0.9; margin: 10px 0;">
+                    📏 Расстояние: ${distanceKm} км
+                </div>
+                <div style="font-size: 16px; opacity: 0.9; margin: 10px 0;">
+                    🎯 Точность: ${accuracy}%
+                </div>
+                <button onclick="this.parentElement.remove()" style="
+                    margin-top: 20px;
+                    padding: 10px 30px;
+                    background: white;
+                    color: #667eea;
+                    border: none;
+                    border-radius: 25px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    font-size: 16px;
+                ">👍 Понятно</button>
+            `;
+
+            document.body.appendChild(overlay);
+        }
+
+        function nextRound() {
+            window.location.href = '/game';
+        }
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -40%);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, -50%);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
