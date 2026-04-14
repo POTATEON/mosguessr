@@ -1,167 +1,333 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌍 GeoGuessr - Главная</title>
+    <title>МосковGeo — Угадай место</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --border: rgba(255,255,255,0.08);
+            --accent: #f0a500;
+            --accent2: #e05a2b;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --green: #3fb950;
+            --red: #f85149;
         }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Фоновая карта-сетка */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(240,165,0,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(240,165,0,0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        /* Размытое пятно света */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -20%;
+            left: -10%;
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(ellipse, rgba(240,165,0,0.06) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .container {
-            max-width: 600px;
+            max-width: 520px;
             width: 100%;
+            position: relative;
+            z-index: 1;
         }
 
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 30px;
-            padding: 50px 40px;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+        /* Шапка */
+        .logo {
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        h1 {
-            font-size: 48px;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .subtitle {
-            font-size: 18px;
-            color: #666;
             margin-bottom: 40px;
         }
 
-        .rules {
-            text-align: left;
-            background: #f5f5f5;
-            padding: 25px;
-            border-radius: 20px;
-            margin: 30px 0;
+        .logo-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(52px, 12vw, 80px);
+            line-height: 0.9;
+            letter-spacing: 3px;
+            color: var(--text);
         }
 
-        .rules h3 {
-            margin-bottom: 15px;
-            color: #333;
+        .logo-title span {
+            color: var(--accent);
         }
 
-        .rules ul {
-            list-style: none;
+        .logo-sub {
+            font-size: 12px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 8px;
         }
 
-        .rules li {
-            padding: 8px 0;
-            color: #555;
+        /* Карточка */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 28px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .rules li:before {
-            content: "🎯";
-            font-size: 20px;
+        .card-header-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
         }
 
-        .btn {
-            display: inline-block;
-            padding: 18px 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 50px;
-            font-size: 20px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-            transition: all 0.3s ease;
+        .card-header h3 {
+            font-size: 11px;
+            letter-spacing: 3px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 10px;
+            color: var(--muted);
+            font-weight: 600;
         }
 
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        .card-body {
+            padding: 28px;
         }
 
-        .btn-secondary {
-            background: white;
-            color: #667eea;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .stats {
+        /* Правила */
+        .rules-list {
+            list-style: none;
             display: flex;
-            justify-content: space-around;
-            margin: 30px 0;
+            flex-direction: column;
+            gap: 14px;
         }
 
-        .stat-item {
+        .rules-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .rule-num {
+            flex-shrink: 0;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 0;
+        }
+
+        /* Статистика */
+        .stats-row {
+            display: flex;
+            gap: 1px;
+            background: var(--border);
+            border-top: 1px solid var(--border);
+        }
+
+        .stat-cell {
+            flex: 1;
+            padding: 18px 16px;
+            background: var(--surface);
             text-align: center;
         }
 
         .stat-value {
+            font-family: 'Bebas Neue', sans-serif;
             font-size: 32px;
-            font-weight: bold;
-            color: #667eea;
+            color: var(--accent);
+            letter-spacing: 2px;
+            line-height: 1;
         }
 
         .stat-label {
-            color: #666;
-            font-size: 14px;
-            margin-top: 5px;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 4px;
         }
 
-        .footer {
-            margin-top: 30px;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 14px;
+        /* Кнопки */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #0d1117;
+        }
+
+        .btn-primary:hover {
+            background: #ffb930;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(240,165,0,0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        /* Иконка карты */
+        .map-icon {
+            position: fixed;
+            bottom: -60px;
+            right: -60px;
+            width: 300px;
+            height: 300px;
+            opacity: 0.04;
+            pointer-events: none;
+        }
+
+        @media (max-width: 480px) {
+            .btn-group { flex-direction: column; }
+            .btn { min-width: auto; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>🌍 GeoGuessr</h1>
-            <div class="subtitle">Угадай место по панораме</div>
+    <svg class="map-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 10 C50 10 20 35 20 55 C20 72 34 82 50 90 C66 82 80 72 80 55 C80 35 50 10 50 10Z" fill="white"/>
+        <circle cx="50" cy="53" r="10" fill="black"/>
+    </svg>
 
-            <div class="rules">
-                <h3>📋 Правила игры:</h3>
-                <ul>
-                    <li>Вы увидите панораму случайного места</li>
-                    <li>Отметьте на карте, где по-вашему находится это место</li>
-                    <li>Чем ближе ваша догадка - тем больше очков</li>
-                    <li>Максимум 5000 очков за раунд</li>
-                    <li>Всего 5 раундов</li>
+    <div class="container">
+        <div class="logo">
+            <div class="logo-title">МосквGEO</div>
+            <div class="logo-sub">Угадай место по панораме</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-dot"></div>
+                <h3>Правила игры</h3>
+            </div>
+            <div class="card-body">
+                <ul class="rules-list">
+                    <li>
+                        <span class="rule-num">1</span>
+                        Тебе покажут уличную панораму случайного места в Москве
+                    </li>
+                    <li>
+                        <span class="rule-num">2</span>
+                        Оглядись вокруг — изучи улицу, вывески, архитектуру
+                    </li>
+                    <li>
+                        <span class="rule-num">3</span>
+                        Отметь на карте, где, по-твоему, сделан этот снимок
+                    </li>
+                    <li>
+                        <span class="rule-num">4</span>
+                        Чем ближе ответ — тем больше очков (макс. 5000 за раунд)
+                    </li>
+                    <li>
+                        <span class="rule-num">5</span>
+                        Пять раундов — это твой шанс набрать 25 000!
+                    </li>
                 </ul>
             </div>
 
-            <a href="/game" class="btn">🎮 Начать игру</a>
-            <a href="/leaderboard" class="btn btn-secondary">🏆 Таблица рекордов</a>
-
-            <div class="footer">
-                Готовы проверить свои знания географии?
+            <div class="stats-row">
+                <div class="stat-cell">
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Раундов</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-value">5000</div>
+                    <div class="stat-label">Макс. очков</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-value">МСК</div>
+                    <div class="stat-label">Город</div>
+                </div>
             </div>
+        </div>
+
+        <div class="btn-group">
+            <a href="/game" class="btn btn-primary">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                Начать игру
+            </a>
+            <a href="/leaderboard" class="btn btn-secondary">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21H5a2 2 0 0 1-2-2v-1a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v1a2 2 0 0 1-2 2h-3M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+                Рекорды
+            </a>
         </div>
     </div>
 </body>

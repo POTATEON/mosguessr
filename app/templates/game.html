@@ -1,477 +1,775 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌍 GeoGuessr - Раунд {{ round_number }}/5</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>МосGuessr — Раунд {{ round_number }}/5</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --border: rgba(255,255,255,0.12);
+            --accent: #f0a500;
+            --accent2: #e05a2b;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --green: #3fb950;
+            --red: #f85149;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            background: #1a1a1a;
-        }
-
-        .game-container {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
-
-        .pano-wrapper {
-            flex: 7;
-            height: 100vh;
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg);
+            color: var(--text);
         }
 
         #pano {
-            width: 100%;
-            height: 100%;
+            position: fixed;
+            inset: 0;
+            z-index: 0;
         }
 
-        .map-wrapper {
-            flex: 3;
-            height: 100vh;
-            position: relative;
-            border-left: 3px solid #333;
-            box-shadow: -5px 0 20px rgba(0,0,0,0.3);
+        .topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+
+        .logo-text {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 4px;
+            color: var(--accent);
+        }
+
+        .pill {
+            background: rgba(240,165,0,0.15);
+            border: 1px solid rgba(240,165,0,0.3);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .score-pill {
+            background: var(--accent);
+            border-radius: 20px;
+            padding: 4px 16px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            letter-spacing: 2px;
+            color: #0d1117;
+        }
+
+        .map-float {
+            position: fixed;
+            top: 70px;
+            right: 24px;
+            z-index: 200;
+            width: 480px;
+            height: 360px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03) inset;
+            transition: width 0.38s cubic-bezier(.4,0,.2,1), height 0.38s cubic-bezier(.4,0,.2,1), box-shadow 0.3s ease;
+        }
+
+        .map-float.collapsed {
+            width: 280px;
+            height: 52px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .map-float.collapsed #map,
+        .map-float.collapsed .map-float-footer {
+            display: none;
+        }
+
+        .map-float.collapsed .map-float-hint {
+            display: none;
+        }
+
+        .map-float.expanded {
+            width: 720px;
+            height: 520px;
+            box-shadow: 0 28px 60px rgba(0,0,0,0.75), 0 0 0 1px rgba(240,165,0,0.12) inset;
+        }
+
+        .map-float-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .map-float.collapsed .map-float-header {
+            border-bottom: none;
+        }
+
+        .map-float-left { display: flex; align-items: center; gap: 10px; }
+
+        .map-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .map-float.collapsed .map-dot { opacity: 1; }
+
+        .map-float-title {
+            font-size: 11px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .map-float-hint {
+            font-size: 10px;
+            color: rgba(139,148,158,0.45);
+            transition: opacity 0.4s;
+        }
+
+        .map-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .map-collapse-btn,
+        .map-expand-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .map-collapse-btn:hover,
+        .map-expand-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(240,165,0,0.07);
+        }
+
+        .map-float.collapsed .map-collapse-btn {
+            display: none;
         }
 
         #map {
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Футер окна карты с кнопкой "Угадать" */
+        .map-float-footer {
+            padding: 12px 14px;
+            background: var(--surface2);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .btn-guess {
             width: 100%;
-            height: 100%;
-        }
-
-        .guess-btn {
-            position: fixed;
-            bottom: 30px;
-            left: 35%;
-            transform: translateX(-50%);
-            padding: 16px 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            padding: 12px;
             border: none;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-            transition: all 0.3s ease;
+            border-radius: 8px;
+            background: var(--accent);
+            color: #0d1117;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            border: 2px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .guess-btn:hover {
-            transform: translateX(-50%) translateY(-3px);
-            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
-            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        .btn-guess:hover:not(:disabled) {
+            background: #ffb930;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(240,165,0,0.3);
         }
 
-        .guess-btn:disabled {
-            background: linear-gradient(135deg, #555 0%, #777 100%);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        .btn-guess:disabled {
+            background: rgba(22,27,34,0.82);
+            color: var(--muted);
+            border: 1px solid var(--border);
             cursor: not-allowed;
-            opacity: 0.5;
-            transform: translateX(-50%);
-            border-color: transparent;
         }
 
-        .info-panel {
+        /* Кнопка "Следующий раунд" */
+        .next-round-wrapper {
             position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            font-weight: 500;
-            border: 1px solid rgba(255,255,255,0.1);
+            bottom: 24px;
+            right: 24px;
+            z-index: 200;
+        }
+
+        .btn-next {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            background: var(--green);
+            color: #0d1117;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 24px rgba(63,185,80,0.3);
+            display: none;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            opacity: 0.92;
+        }
+
+        .btn-next.finish {
+            background: var(--accent2);
+            box-shadow: 0 8px 24px rgba(224,90,43,0.3);
+        }
+
+        /* Загрузка */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            gap: 18px;
+        }
+
+        .loading-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 56px;
+            letter-spacing: 6px;
+            color: var(--accent);
+        }
+
+        .loading-spinner {
+            width: 36px; height: 36px;
+            border: 2px solid rgba(240,165,0,0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .loading-attempt { font-size: 11px; color: rgba(139,148,158,0.4); }
+
+        /* Результат */
+        .result-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.62);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
             display: flex;
             align-items: center;
-            gap: 15px;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
 
-        .round-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 5px 15px;
+        .result-overlay.visible { opacity: 1; pointer-events: auto; }
+
+        .result-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 20px;
-            font-size: 14px;
-        }
-
-        .score-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-
-        .location-hint {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            border: 1px solid rgba(255,255,255,0.1);
-            font-size: 14px;
-        }
-
-        .map-hint {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            color: rgba(255,255,255,0.6);
-            background: rgba(0,0,0,0.5);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-        }
-
-        .next-round-btn {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 16px 40px;
-            background: linear-gradient(135deg, #2ed573 0%, #26a65b 100%);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            z-index: 1001;
-            box-shadow: 0 10px 30px rgba(46, 213, 115, 0.4);
-            transition: all 0.3s ease;
-            display: none;
-        }
-
-        .next-round-btn:hover {
-            transform: translateX(-50%) translateY(-3px);
-            box-shadow: 0 15px 40px rgba(46, 213, 115, 0.5);
-        }
-
-        .finish-btn {
-            background: linear-gradient(135deg, #ffa502 0%, #ff7f50 100%);
-            box-shadow: 0 10px 30px rgba(255, 165, 2, 0.4);
-        }
-
-        .pano-error {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
+            padding: 36px 32px;
+            max-width: 340px;
+            width: 100%;
             text-align: center;
-            background: rgba(0,0,0,0.7);
-            padding: 30px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            z-index: 10;
+            transform: translateY(20px) scale(0.97);
+            transition: transform 0.32s cubic-bezier(.4,0,.2,1);
         }
 
-        /* Индикатор расстояния */
-        .distance-indicator {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            z-index: 999;
-            font-size: 14px;
-            display: none;
+        .result-overlay.visible .result-card { transform: translateY(0) scale(1); }
+
+        .result-emoji { font-size: 44px; margin-bottom: 10px; }
+
+        .result-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 30px;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+        }
+
+        .result-score {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 76px;
+            color: var(--accent);
+            letter-spacing: 4px;
+            line-height: 1;
+        }
+
+        .result-score-label {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 24px;
+        }
+
+        .result-stats {
+            display: flex;
+            gap: 1px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .result-stat { flex: 1; background: var(--surface2); padding: 14px 8px; }
+        .result-stat-val { font-weight: 700; font-size: 15px; }
+        .result-stat-key {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .result-close-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: #0d1117;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .result-close-btn:hover { background: #ffb930; }
+
+        @media (max-width: 600px) {
+            .map-float {
+                top: 70px;
+                right: 12px;
+                left: 12px;
+                width: auto;
+                height: 220px;
+            }
+
+            .map-float.collapsed {
+                width: auto;
+                height: 52px;
+            }
+
+            .map-float.expanded {
+                top: 70px;
+                right: 12px;
+                left: 12px;
+                width: auto;
+                height: 50vh;
+            }
+
+            .next-round-wrapper {
+                bottom: 12px;
+                right: 12px;
+                left: 12px;
+            }
+
+            .btn-next { width: 100%; }
+
+            .topbar { padding: 8px 14px; }
+            .logo-text { font-size: 18px; }
         }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="pano-wrapper">
-            <div id="pano"></div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-logo">МосGuessr</div>
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Ищем панораму</div>
+        <div class="loading-attempt" id="attemptCounter"></div>
+    </div>
+
+    <div class="result-overlay" id="resultOverlay">
+        <div class="result-card">
+            <div class="result-emoji" id="resultEmoji">🎯</div>
+            <div class="result-title" id="resultTitle">ОТЛИЧНО!</div>
+            <div class="result-score" id="resultScore">+0</div>
+            <div class="result-score-label">очков за раунд</div>
+            <div class="result-stats">
+                <div class="result-stat">
+                    <div class="result-stat-val" id="resultDist">—</div>
+                    <div class="result-stat-key">Расстояние</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-stat-val" id="resultAccuracy">—</div>
+                    <div class="result-stat-key">Точность</div>
+                </div>
+            </div>
+            <button class="result-close-btn" onclick="closeResult()">Посмотреть на карте</button>
         </div>
+    </div>
 
-        <div class="map-wrapper">
-            <div id="map"></div>
+    <div id="pano"></div>
+
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo-text">МосGuessr</div>
+            <div class="pill">Раунд {{ round_number }} / 5</div>
+        </div>
+        <div class="score-pill">🏆 <span id="totalScore">{{ total_score }}</span></div>
+    </div>
+
+    <div class="map-float" id="mapFloat">
+        <div class="map-float-header">
+            <div class="map-float-left">
+                <div class="map-dot"></div>
+                <div class="map-float-title">Карта Москвы</div>
+            </div>
+            <div class="map-float-hint" id="mapHint">Кликните, чтобы выбрать место</div>
+            <div class="map-controls">
+                <button class="map-collapse-btn" id="collapseBtn" title="Свернуть">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M5 12h14"/>
+                    </svg>
+                </button>
+                <button class="map-expand-btn" id="expandBtn" title="Развернуть">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="map"></div>
+        <div class="map-float-footer">
+            <button class="btn-guess" id="guessBtn" disabled>🎯 Угадать место</button>
         </div>
     </div>
 
-    <div class="info-panel">
-        <span>🌍 GeoGuessr</span>
-        <span class="round-badge">Раунд {{ round_number }}/5</span>
-        <span class="score-badge">🏆 <span id="totalScore">{{ total_score }}</span></span>
+    <div class="next-round-wrapper">
+        <button class="btn-next" id="nextBtn">Следующий раунд →</button>
     </div>
-
-    {% if location_hint %}
-    <div class="location-hint">
-        📍 {{ location_hint }}
-    </div>
-    {% endif %}
-
-    <button class="guess-btn" id="guessBtn" disabled>🎯 Угадать место</button>
-    <button class="next-round-btn" id="nextRoundBtn" onclick="nextRound()">➡️ Следующий раунд</button>
-
-    <div class="map-hint">
-        🖱️ Кликните на карте, чтобы отметить место
-    </div>
-
-    <div class="distance-indicator" id="distanceIndicator"></div>
 
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_api_key }}&lang=ru_RU"></script>
-
     <script>
-        const PANO_LAT = {{ lat }};
-        const PANO_LON = {{ lon }};
-        const REAL_COORDS = [{{ lat }}, {{ lon }}];
-        const LOCATION_ID = {{ location_id }};
         const CURRENT_ROUND = {{ round_number }};
-        const TOTAL_SCORE = {{ total_score }};
-
-        let userCoords = null;
+        let map = null;
         let userMarker = null;
-        let map;
-        let answerMarker = null;
-        let resultLine = null;
+        let userCoords = null;
+        let realCoords = null;
+        let locationId = null;
         let roundCompleted = false;
-        let currentDistance = 0;
+        let mapExpanded = false;
+        let mapCollapsed = false;
 
-        ymaps.ready(() => {
-            // Панорама
-            ymaps.panorama.createPlayer('pano', [PANO_LAT, PANO_LON], {
-                layer: 'yandex#panorama',
-                controls: [],
-                suppressMapOpenBlock: true
-            }).catch(() => {
-                document.getElementById('pano').innerHTML =
-                    '<div class="pano-error">❌ Панорама не найдена<br><span style="font-size: 14px; opacity: 0.7;">Загружаем другую локацию...</span></div>';
-                setTimeout(() => location.reload(), 2000);
+        const mapFloat  = document.getElementById('mapFloat');
+        const expandBtn = document.getElementById('expandBtn');
+        const collapseBtn = document.getElementById('collapseBtn');
+
+        expandBtn.addEventListener('click', () => {
+            if (mapCollapsed) {
+                mapCollapsed = false;
+                mapFloat.classList.remove('collapsed');
+                updateCollapseIcon();
+            }
+            mapExpanded = !mapExpanded;
+            mapFloat.classList.toggle('expanded', mapExpanded);
+            updateExpandIcon();
+            setTimeout(() => { if (map) map.container.fitToViewport(); }, 370);
+        });
+
+        collapseBtn.addEventListener('click', () => {
+            mapCollapsed = !mapCollapsed;
+            mapFloat.classList.toggle('collapsed', mapCollapsed);
+            if (mapCollapsed) {
+                mapExpanded = false;
+                mapFloat.classList.remove('expanded');
+                updateExpandIcon();
+            }
+            updateCollapseIcon();
+            if (!mapCollapsed) {
+                setTimeout(() => { if (map) map.container.fitToViewport(); }, 370);
+            }
+        });
+
+        function updateExpandIcon() {
+            expandBtn.innerHTML = mapExpanded
+                ? `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                       <path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/>
+                   </svg>`
+                : `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                       <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                   </svg>`;
+        }
+
+        function updateCollapseIcon() {
+            collapseBtn.innerHTML = mapCollapsed
+                ? `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                       <path d="M12 5v14M5 12h14"/>
+                   </svg>`
+                : `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                       <path d="M5 12h14"/>
+                   </svg>`;
+            collapseBtn.title = mapCollapsed ? 'Развернуть' : 'Свернуть';
+        }
+
+        async function findAndLoadPanorama(lat, lon, attempt = 1) {
+            const MAX = 15;
+            document.getElementById('attemptCounter').textContent =
+                attempt > 1 ? `Попытка ${attempt} из ${MAX}` : '';
+
+            try {
+                const panoramas = await ymaps.panorama.locate([lat, lon]);
+                if (!panoramas.length) throw new Error('Нет панорамы');
+
+                const pano = panoramas[0];
+                const coords = pano.getPosition();
+
+                const r = await fetch('/save_panorama', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lat: coords[0], lon: coords[1] })
+                });
+                locationId = (await r.json()).location_id;
+
+                try {
+                    await ymaps.panorama.createPlayer('pano', coords, {
+                        layer: 'yandex#panorama', controls: [], suppressMapOpenBlock: true
+                    });
+                } catch {
+                    new ymaps.panorama.Player('pano', pano, { controls: [], suppressMapOpenBlock: true });
+                }
+
+                realCoords = coords;
+                document.getElementById('loadingOverlay').style.display = 'none';
+
+            } catch {
+                if (attempt < MAX) {
+                    document.getElementById('loadingText').textContent = 'Ищем другое место';
+                    await new Promise(r => setTimeout(r, 800));
+                    return findAndLoadPanorama(
+                        55.55 + Math.random() * 0.4,
+                        37.35 + Math.random() * 0.55,
+                        attempt + 1
+                    );
+                } else {
+                    document.getElementById('loadingText').textContent = 'Загружаем запасной вид';
+                    const fb = [55.753544, 37.621202];
+                    realCoords = fb;
+                    const r = await fetch('/save_panorama', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lat: fb[0], lon: fb[1] })
+                    });
+                    locationId = (await r.json()).location_id;
+                    await ymaps.panorama.createPlayer('pano', fb, {
+                        layer: 'yandex#panorama', controls: [], suppressMapOpenBlock: true
+                    });
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                }
+            }
+        }
+
+        function calculateScore(dist, isMoscow) {
+            const km = dist / 1000;
+
+            // Если это не Москва и расстояние меньше 1 км — джекпот!
+            if (!isMoscow && km <= 20) {
+                return 52000;
+            }
+
+            // Обычная логика для Москвы
+            if (km >= 10) return 0;
+            if (km <= 0.1) return 5000;
+            return Math.round(5000 * (1 - (km - 0.1) / 9.9));
+        }
+
+        function showResult(distance, score, isMoscow) {
+            const km = (distance / 1000).toFixed(2);
+            const acc = Math.max(0, 100 - (parseFloat(km) / 10) * 100).toFixed(1);
+
+            let emoji, title, scoreText, labelText;
+
+            if (!isMoscow) {
+                if (score === 52000) {
+                    emoji = '🏆🏆🏆';
+                    title = 'НЕВЕРОЯТНО! ДЖЕКПОТ!';
+                    scoreText = '52 000';
+                    labelText = 'очков за раунд';
+                } else {
+                    emoji = '🤯';
+                    title = 'УПС! ЭТО НЕ МОСКВА!';
+                    scoreText = '🏙️';
+                    labelText = 'другой город';
+                }
+            } else {
+                emoji = score === 0 ? '😢' : score >= 4000 ? '🎯' : score >= 2000 ? '👍' : '🤷';
+                title = score === 0 ? 'МИМО!' : score >= 4000 ? 'ОТЛИЧНО!' : score >= 2000 ? 'НЕПЛОХО!' : 'ПРОДОЛЖАЙ!';
+                scoreText = '+' + score;
+                labelText = 'очков за раунд';
+            }
+
+            document.getElementById('resultEmoji').textContent = emoji;
+            document.getElementById('resultTitle').textContent = title;
+            document.getElementById('resultScore').textContent = scoreText;
+            document.getElementById('resultScore').style.fontSize = (!isMoscow && score === 52000) ? '48px' : '76px';
+            document.querySelector('.result-score-label').textContent = labelText;
+            document.getElementById('resultDist').textContent = km + ' км';
+            document.getElementById('resultAccuracy').textContent = acc + '%';
+            document.getElementById('resultOverlay').classList.add('visible');
+        }
+
+        function closeResult() {
+            document.getElementById('resultOverlay').classList.remove('visible');
+            if (mapCollapsed) {
+                mapCollapsed = false;
+                mapFloat.classList.remove('collapsed');
+                updateCollapseIcon();
+            }
+            if (!mapExpanded) {
+                mapExpanded = true;
+                mapFloat.classList.add('expanded');
+                updateExpandIcon();
+            }
+            setTimeout(() => { if (map) map.container.fitToViewport(); }, 370);
+        }
+
+        function submitGuess() {
+            if (!userCoords || !realCoords || roundCompleted) return;
+            roundCompleted = true;
+
+            if (mapCollapsed) {
+                mapCollapsed = false;
+                mapFloat.classList.remove('collapsed');
+                updateCollapseIcon();
+            }
+
+            map.geoObjects.add(new ymaps.Placemark(realCoords,
+                { hintContent: 'Правильное место' }, { preset: 'islands#greenIcon' }));
+
+            map.geoObjects.add(new ymaps.Polyline(
+                [userCoords, realCoords], {},
+                { strokeColor: '#f0a500', strokeWidth: 3, strokeOpacity: 0.9, strokeStyle: 'dash' }
+            ));
+
+            map.setBounds(map.geoObjects.getBounds(), { zoomMargin: 50, checkZoomRange: true });
+
+            const distance = ymaps.coordSystem.geo.getDistance(userCoords, realCoords);
+
+            // Проверяем, Москва ли это
+            const isMoscow = (realCoords[0] >= 55.55 && realCoords[0] <= 55.95) &&
+                             (realCoords[1] >= 37.35 && realCoords[1] <= 37.90);
+
+            const score = calculateScore(distance, isMoscow);
+
+            fetch('/submit_guess', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    location_id: locationId,
+                    guess_lat: userCoords[0],
+                    guess_lon: userCoords[1],
+                    distance: Math.round(distance),
+                    score
+                })
+            }).then(r => r.json()).then(d => {
+                document.getElementById('totalScore').textContent = d.total_score;
             });
 
-            // Мини-карта
+            showResult(distance, score, isMoscow);
+
+            document.getElementById('guessBtn').disabled = true;
+
+            const nextBtn = document.getElementById('nextBtn');
+            const isLast = CURRENT_ROUND >= 5;
+            nextBtn.textContent = isLast ? '🏁 Завершить игру' : '➡️ Следующий раунд';
+            if (isLast) nextBtn.classList.add('finish');
+            nextBtn.style.display = 'block';
+            nextBtn.onclick = () => window.location.href = isLast ? '/game_over' : '/game';
+        }
+
+        document.getElementById('guessBtn').onclick = submitGuess;
+
+        ymaps.ready(async () => {
             map = new ymaps.Map('map', {
                 center: [55.76, 37.64],
                 zoom: 10,
                 controls: ['zoomControl']
             });
+            map.controls.get('zoomControl').options.set({ size: 'small', position: { top: 10, right: 10 } });
 
-            map.controls.get('zoomControl').options.set({
-                size: 'large',
-                position: { top: 20, right: 20 }
-            });
-
-            // Клик по карте
             map.events.add('click', (e) => {
                 if (roundCompleted) return;
-
                 userCoords = e.get('coords');
-
-                if (userMarker) {
-                    userMarker.geometry.setCoordinates(userCoords);
-                } else {
-                    userMarker = new ymaps.Placemark(userCoords, {}, {
-                        preset: 'islands#redIcon',
-                        iconColor: '#ff4757'
-                    });
+                if (userMarker) userMarker.geometry.setCoordinates(userCoords);
+                else {
+                    userMarker = new ymaps.Placemark(userCoords,
+                        { hintContent: 'Ваша догадка' }, { preset: 'islands#redIcon' });
                     map.geoObjects.add(userMarker);
                 }
-
-                // Показываем примерное расстояние (опционально)
-                const dist = ymaps.coordSystem.geo.getDistance(userCoords, REAL_COORDS);
-                currentDistance = dist;
-
                 document.getElementById('guessBtn').disabled = false;
+                document.getElementById('mapHint').style.opacity = '0';
             });
 
-            // Кнопка "Угадать"
-            document.getElementById('guessBtn').onclick = () => {
-                if (!userCoords || roundCompleted) return;
-
-                roundCompleted = true;
-
-                // Зелёная метка
-                answerMarker = new ymaps.Placemark(REAL_COORDS, {}, {
-                    preset: 'islands#greenIcon',
-                    iconColor: '#2ed573'
-                });
-                map.geoObjects.add(answerMarker);
-
-                // Красная линия
-                resultLine = new ymaps.Polyline(
-                    [userCoords, REAL_COORDS],
-                    {},
-                    {
-                        strokeColor: '#ff6b81',
-                        strokeWidth: 4,
-                        strokeOpacity: 0.8
-                    }
-                );
-                map.geoObjects.add(resultLine);
-
-                // Зум
-                map.setBounds(map.geoObjects.getBounds(), {
-                    zoomMargin: 80,
-                    checkZoomRange: true
-                });
-
-                // Расчёт расстояния и очков (НОВАЯ ФОРМУЛА)
-                const distance = ymaps.coordSystem.geo.getDistance(userCoords, REAL_COORDS);
-                const roundScore = calculateScore(distance);
-
-                // Отправка результата
-                submitResult(userCoords[0], userCoords[1], distance, roundScore);
-
-                // Показ результата
-                showResult(distance, roundScore);
-
-                document.getElementById('guessBtn').style.display = 'none';
-
-                // Меняем кнопку в зависимости от раунда
-                const nextBtn = document.getElementById('nextRoundBtn');
-                if (CURRENT_ROUND >= 5) {
-                    nextBtn.textContent = '🏁 Завершить игру';
-                    nextBtn.classList.add('finish-btn');
-                    nextBtn.onclick = () => window.location.href = '/game_over';
-                } else {
-                    nextBtn.textContent = '➡️ Следующий раунд';
-                    nextBtn.onclick = () => window.location.href = '/game';
-                }
-                nextBtn.style.display = 'block';
-            };
+            await findAndLoadPanorama({{ search_lat }}, {{ search_lon }});
         });
-
-        // НОВАЯ ФОРМУЛА ПОДСЧЁТА ОЧКОВ
-        function calculateScore(distance) {
-            const distanceKm = distance / 1000;
-
-            if (distanceKm >= 10) {
-                return 0;  // Больше 10 км = 0 очков
-            } else if (distanceKm <= 0.1) {
-                return 5000;  // Меньше 100 метров = максимум
-            } else {
-                // Линейное падение от 5000 до 0 на промежутке 0.1-10 км
-                return Math.round(5000 * (1 - (distanceKm - 0.1) / 9.9));
-            }
-        }
-
-        function submitResult(guessLat, guessLon, distance, score) {
-            fetch('/submit_guess', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    location_id: LOCATION_ID,
-                    guess_lat: guessLat,
-                    guess_lon: guessLon,
-                    distance: Math.round(distance),
-                    score: score
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Результат сохранён:', data);
-                document.getElementById('totalScore').textContent = data.total_score;
-            })
-            .catch(error => console.error('Ошибка:', error));
-        }
-
-        function showResult(distance, score) {
-            const distanceKm = (distance / 1000).toFixed(2);
-            const accuracy = Math.max(0, 100 - (distanceKm / 10) * 100).toFixed(1);
-
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 30px 50px;
-                border-radius: 20px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-                z-index: 2000;
-                text-align: center;
-                backdrop-filter: blur(10px);
-                border: 2px solid rgba(255,255,255,0.2);
-                animation: slideIn 0.3s ease;
-            `;
-
-            let scoreMessage = '';
-            if (score === 0) {
-                scoreMessage = '😢 Слишком далеко!';
-            } else if (score >= 4000) {
-                scoreMessage = '🎯 Отлично!';
-            } else if (score >= 2000) {
-                scoreMessage = '👍 Хорошо!';
-            } else {
-                scoreMessage = '👌 Неплохо';
-            }
-
-            overlay.innerHTML = `
-                <h2 style="margin: 0 0 20px 0; font-size: 28px;">${scoreMessage}</h2>
-                <div style="font-size: 48px; font-weight: bold; margin: 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
-                    +${score}
-                </div>
-                <div style="font-size: 16px; opacity: 0.9; margin: 10px 0;">
-                    📏 Расстояние: ${distanceKm} км
-                </div>
-                <div style="font-size: 16px; opacity: 0.9; margin: 10px 0;">
-                    🎯 Точность: ${accuracy}%
-                </div>
-                <button onclick="this.parentElement.remove()" style="
-                    margin-top: 20px;
-                    padding: 10px 30px;
-                    background: white;
-                    color: #667eea;
-                    border: none;
-                    border-radius: 25px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    font-size: 16px;
-                ">👍 Понятно</button>
-            `;
-
-            document.body.appendChild(overlay);
-        }
-
-        function nextRound() {
-            window.location.href = '/game';
-        }
-
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from {
-                    opacity: 0;
-                    transform: translate(-50%, -40%);
-                }
-                to {
-                    opacity: 1;
-                    transform: translate(-50%, -50%);
-                }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>

@@ -1,116 +1,342 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎉 Игра завершена - GeoGuessr</title>
+    <title>МосквGEO — Итоги</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --border: rgba(255,255,255,0.08);
+            --accent: #f0a500;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --green: #3fb950;
         }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(240,165,0,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(240,165,0,0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
         }
 
         .container {
-            max-width: 500px;
+            max-width: 480px;
             width: 100%;
+            position: relative;
+            z-index: 1;
         }
 
+        /* Заголовок */
+        .page-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header-label {
+            font-size: 11px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .header-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(42px, 10vw, 64px);
+            letter-spacing: 4px;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        /* Карточка итогов */
         .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 30px;
-            padding: 50px 40px;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        /* Главный счёт */
+        .score-hero {
+            padding: 40px 28px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-hero::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(240,165,0,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .score-main {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(80px, 20vw, 120px);
+            color: var(--accent);
+            letter-spacing: 6px;
+            line-height: 0.9;
+        }
+
+        .score-label {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 12px;
+        }
+
+        /* Рейтинг */
+        .rating-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .star {
+            font-size: 24px;
+            opacity: 0.2;
+            transition: opacity 0.3s;
+        }
+
+        .star.active { opacity: 1; }
+
+        /* Статы */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border-top: 1px solid var(--border);
+        }
+
+        .stat-cell {
+            background: var(--surface2);
+            padding: 20px 16px;
             text-align: center;
         }
 
-        h1 {
-            font-size: 36px;
-            margin-bottom: 30px;
-            color: #333;
+        .stat-val {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            color: var(--text);
+            letter-spacing: 2px;
+            line-height: 1;
         }
 
-        .final-score {
-            font-size: 72px;
-            font-weight: bold;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 30px 0;
+        .stat-key {
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 4px;
         }
 
-        .stats {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 15px;
-            margin: 30px 0;
-        }
-
-        .stat-row {
+        /* Сообщение */
+        .message-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
             display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .message-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .message-text {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .message-text strong {
+            color: var(--text);
+            display: block;
+            margin-bottom: 2px;
+            font-size: 15px;
+        }
+
+        /* Кнопки */
+        .btn-group {
+            display: flex;
+            gap: 12px;
         }
 
         .btn {
-            display: inline-block;
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            flex: 1;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
             text-decoration: none;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: 600;
-            margin: 10px;
-            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        .btn-primary {
+            background: var(--accent);
+            color: #0d1117;
+        }
+
+        .btn-primary:hover {
+            background: #ffb930;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(240,165,0,0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 400px) {
+            .btn-group { flex-direction: column; }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="page-header">
+            <div class="header-label">Игра завершена</div>
+            <div class="header-title">Результат</div>
+        </div>
+
         <div class="card">
-            <h1>🎉 Игра завершена!</h1>
+            <div class="score-hero">
+                <div class="score-main">{{ total_score }}</div>
+                <div class="score-label">финальный счёт</div>
 
-            <div class="final-score">{{ total_score }}</div>
-            <p>финальный счёт</p>
-
-            <div class="stats">
-                <div class="stat-row">
-                    <span>🎯 Раундов сыграно:</span>
-                    <strong>{{ rounds_played }}</strong>
-                </div>
-                <div class="stat-row">
-                    <span>📊 Средний счёт за раунд:</span>
-                    <strong>{{ avg_score }}</strong>
-                </div>
-                <div class="stat-row">
-                    <span>🏆 Лучший раунд:</span>
-                    <strong>{{ best_round }}</strong>
+                <div class="rating-bar" id="ratingBar">
+                    <div class="star" id="s1">⭐</div>
+                    <div class="star" id="s2">⭐</div>
+                    <div class="star" id="s3">⭐</div>
+                    <div class="star" id="s4">⭐</div>
+                    <div class="star" id="s5">⭐</div>
                 </div>
             </div>
 
-            <div>
-                <a href="/" class="btn">🏠 На главную</a>
-                <a href="/leaderboard" class="btn">🏆 Таблица рекордов</a>
+            <div class="stats-grid">
+                <div class="stat-cell">
+                    <div class="stat-val">{{ rounds_played }}</div>
+                    <div class="stat-key">Раундов</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-val">{{ (total_score / rounds_played) | int if rounds_played > 0 else 0 }}</div>
+                    <div class="stat-key">Среднее</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-val">{{ ((total_score / (rounds_played * 5000)) * 100) | int if rounds_played > 0 else 0 }}%</div>
+                    <div class="stat-key">Эффект.</div>
+                </div>
             </div>
         </div>
+
+        <!-- Динамическое сообщение -->
+        {% set efficiency = (total_score / (rounds_played * 5000) * 100) | int if rounds_played > 0 else 0 %}
+        {% if efficiency >= 80 %}
+        <div class="message-card">
+            <div class="message-icon">🏆</div>
+            <div class="message-text">
+                <strong>Легендарный результат!</strong>
+                Ты отлично знаешь Москву. Попробуй побить свой рекорд!
+            </div>
+        </div>
+        {% elif efficiency >= 50 %}
+        <div class="message-card">
+            <div class="message-icon">🗺️</div>
+            <div class="message-text">
+                <strong>Хороший результат!</strong>
+                Ты неплохо ориентируешься в городе. Ещё немного практики!
+            </div>
+        </div>
+        {% else %}
+        <div class="message-card">
+            <div class="message-icon">📍</div>
+            <div class="message-text">
+                <strong>Первый шаг сделан!</strong>
+                Москва большая — изучай её улицы и возвращайся!
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="btn-group">
+            <a href="/reset_game" class="btn btn-primary">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                Играть снова
+            </a>
+            <a href="/leaderboard" class="btn btn-secondary">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21H5a2 2 0 0 1-2-2v-1a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v1a2 2 0 0 1-2 2h-3M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+                Рекорды
+            </a>
+        </div>
     </div>
+
+    <script>
+        // Звёзды на основе эффективности
+        const score = {{ total_score }};
+        const rounds = {{ rounds_played }};
+        const maxPossible = rounds * 5000;
+        const pct = maxPossible > 0 ? score / maxPossible : 0;
+        const stars = Math.round(pct * 5);
+
+        for (let i = 1; i <= stars; i++) {
+            document.getElementById('s' + i).classList.add('active');
+        }
+    </script>
 </body>
 </html>
