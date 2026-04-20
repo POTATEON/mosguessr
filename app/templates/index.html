@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>МосковGeo — Угадай место</title>
+    <title>МосквGEO — Угадай место</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -35,7 +35,6 @@
             overflow: hidden;
         }
 
-        /* Фоновая карта-сетка */
         body::before {
             content: '';
             position: fixed;
@@ -47,7 +46,6 @@
             pointer-events: none;
         }
 
-        /* Размытое пятно света */
         body::after {
             content: '';
             position: fixed;
@@ -66,7 +64,6 @@
             z-index: 1;
         }
 
-        /* Шапка */
         .logo {
             text-align: center;
             margin-bottom: 40px;
@@ -92,7 +89,6 @@
             margin-top: 8px;
         }
 
-        /* Карточка */
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -128,7 +124,6 @@
             padding: 28px;
         }
 
-        /* Правила */
         .rules-list {
             list-style: none;
             display: flex;
@@ -159,10 +154,8 @@
             font-weight: 700;
             color: var(--accent);
             font-family: 'Bebas Neue', sans-serif;
-            letter-spacing: 0;
         }
 
-        /* Статистика */
         .stats-row {
             display: flex;
             gap: 1px;
@@ -193,7 +186,6 @@
             margin-top: 4px;
         }
 
-        /* Кнопки */
         .btn-group {
             display: flex;
             gap: 12px;
@@ -244,7 +236,11 @@
             transform: translateY(-2px);
         }
 
-        /* Иконка карты */
+        .user-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+
         .map-icon {
             position: fixed;
             bottom: -60px;
@@ -280,54 +276,42 @@
             </div>
             <div class="card-body">
                 <ul class="rules-list">
-                    <li>
-                        <span class="rule-num">1</span>
-                        Тебе покажут уличную панораму случайного места в Москве
-                    </li>
-                    <li>
-                        <span class="rule-num">2</span>
-                        Оглядись вокруг — изучи улицу, вывески, архитектуру
-                    </li>
-                    <li>
-                        <span class="rule-num">3</span>
-                        Отметь на карте, где, по-твоему, сделан этот снимок
-                    </li>
-                    <li>
-                        <span class="rule-num">4</span>
-                        Чем ближе ответ — тем больше очков (макс. 5000 за раунд)
-                    </li>
-                    <li>
-                        <span class="rule-num">5</span>
-                        Пять раундов — это твой шанс набрать 25 000!
-                    </li>
+                    <li><span class="rule-num">1</span>Тебе покажут уличную панораму случайного места в Москве</li>
+                    <li><span class="rule-num">2</span>Оглядись вокруг — изучи улицу, вывески, архитектуру</li>
+                    <li><span class="rule-num">3</span>Отметь на карте, где, по-твоему, сделан этот снимок</li>
+                    <li><span class="rule-num">4</span>Чем ближе ответ — тем больше очков (макс. 5000 за раунд)</li>
+                    <li><span class="rule-num">5</span>Пять раундов — это твой шанс набрать 25 000!</li>
                 </ul>
             </div>
 
             <div class="stats-row">
-                <div class="stat-cell">
-                    <div class="stat-value">5</div>
-                    <div class="stat-label">Раундов</div>
-                </div>
-                <div class="stat-cell">
-                    <div class="stat-value">5000</div>
-                    <div class="stat-label">Макс. очков</div>
-                </div>
-                <div class="stat-cell">
-                    <div class="stat-value">МСК</div>
-                    <div class="stat-label">Город</div>
-                </div>
+                <div class="stat-cell"><div class="stat-value">5</div><div class="stat-label">Раундов</div></div>
+                <div class="stat-cell"><div class="stat-value">5000</div><div class="stat-label">Макс. очков</div></div>
+                <div class="stat-cell"><div class="stat-value">МСК</div><div class="stat-label">Город</div></div>
             </div>
         </div>
 
         <div class="btn-group">
-            <a href="/game" class="btn btn-primary">
+            <a href="{{ url_for('game.game') }}" class="btn btn-primary">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
                 Начать игру
             </a>
-            <a href="/leaderboard" class="btn btn-secondary">
+            <a href="{{ url_for('game.leaderboard') }}" class="btn btn-secondary">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21H5a2 2 0 0 1-2-2v-1a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v1a2 2 0 0 1-2 2h-3M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
                 Рекорды
             </a>
+        </div>
+
+        <div class="user-section">
+            {% if user %}
+                <p>Привет, {{ user.name }}!</p>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="display: inline-block; margin-top: 10px;">Выйти</a>
+            {% else %}
+                <p>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">Войти</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">Регистрация</a>
+                </p>
+            {% endif %}
         </div>
     </div>
 </body>

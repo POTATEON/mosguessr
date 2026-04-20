@@ -49,7 +49,6 @@
             z-index: 1;
         }
 
-        /* Хедер */
         .page-header {
             display: flex;
             align-items: flex-end;
@@ -58,8 +57,6 @@
             flex-wrap: wrap;
             gap: 16px;
         }
-
-        .header-left {}
 
         .header-eyebrow {
             font-size: 11px;
@@ -120,7 +117,6 @@
             color: var(--accent);
         }
 
-        /* Топ-3 */
         .podium {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -183,7 +179,6 @@
             letter-spacing: 1px;
         }
 
-        /* Таблица */
         .table-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -245,7 +240,6 @@
             color: var(--muted);
         }
 
-        /* Пустое состояние */
         .empty {
             text-align: center;
             padding: 60px 20px;
@@ -257,12 +251,10 @@
 
         @media (max-width: 600px) {
             .podium { grid-template-columns: 1fr; }
-
             .table-header-row,
             .table-row {
                 grid-template-columns: 40px 1fr 80px 80px;
             }
-
             .th:nth-child(3), .td:nth-child(3) { display: none; }
         }
     </style>
@@ -275,11 +267,11 @@
                 <div class="header-title">Таблица рекордов</div>
             </div>
             <div class="nav-btns">
-                <a href="/" class="btn btn-secondary">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     Главная
                 </a>
-                <a href="/game" class="btn btn-primary">
+                <a href="{{ url_for('game.game') }}" class="btn btn-primary">
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
                     Играть
                 </a>
@@ -287,45 +279,39 @@
         </div>
 
         {% if games %}
-
-        <!-- Топ-3 пьедестал -->
-        {% if games|length >= 1 %}
         <div class="podium">
             {% for game in games[:3] %}
             <div class="podium-item {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% else %}bronze{% endif %}">
                 <div class="podium-medal">{% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% else %}🥉{% endif %}</div>
                 <div class="podium-score">{{ game.score }}</div>
-                <div class="podium-city">{{ game.city or 'Москва' }}</div>
-                <div class="podium-date">{{ game.played_at[:10] if game.played_at else '' }}</div>
+                <div class="podium-city">{{ game.actual_city or 'Москва' }}</div>
+                <div class="podium-date">{{ game.played_at.strftime('%Y-%m-%d') if game.played_at else '' }}</div>
             </div>
             {% endfor %}
         </div>
-        {% endif %}
 
-        <!-- Полная таблица -->
         {% if games|length > 3 %}
         <div class="table-card">
             <div class="table-header-row">
                 <div class="th" style="text-align:center">#</div>
+                <div class="th">Игрок</div>
                 <div class="th">Город</div>
-                <div class="th">Описание</div>
                 <div class="th">Очки</div>
                 <div class="th">Дата</div>
             </div>
             {% for game in games[3:] %}
             <div class="table-row">
                 <div class="td td-rank">{{ loop.index + 3 }}</div>
-                <div class="td">{{ game.city or 'Москва' }}</div>
-                <div class="td" style="color:var(--muted); font-size:12px;">{{ game.description or '—' }}</div>
+                <div class="td">{{ game.user.name if game.user else 'Аноним' }}</div>
+                <div class="td">{{ game.actual_city or 'Москва' }}</div>
                 <div class="td td-score {% if game.score >= 4000 %}score-high{% elif game.score >= 2500 %}score-med{% else %}score-low{% endif %}">
                     {{ game.score }}
                 </div>
-                <div class="td td-date">{{ game.played_at[:10] if game.played_at else '—' }}</div>
+                <div class="td td-date">{{ game.played_at.strftime('%Y-%m-%d') if game.played_at else '—' }}</div>
             </div>
             {% endfor %}
         </div>
         {% endif %}
-
         {% else %}
         <div class="table-card">
             <div class="empty">

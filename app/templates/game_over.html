@@ -51,7 +51,6 @@
             z-index: 1;
         }
 
-        /* Заголовок */
         .page-header {
             text-align: center;
             margin-bottom: 32px;
@@ -73,7 +72,6 @@
             line-height: 1;
         }
 
-        /* Карточка итогов */
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -82,7 +80,6 @@
             margin-bottom: 16px;
         }
 
-        /* Главный счёт */
         .score-hero {
             padding: 40px 28px;
             text-align: center;
@@ -118,7 +115,6 @@
             margin-top: 12px;
         }
 
-        /* Рейтинг */
         .rating-bar {
             display: flex;
             align-items: center;
@@ -135,7 +131,6 @@
 
         .star.active { opacity: 1; }
 
-        /* Статы */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -166,7 +161,6 @@
             margin-top: 4px;
         }
 
-        /* Сообщение */
         .message-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -196,7 +190,6 @@
             font-size: 15px;
         }
 
-        /* Кнопки */
         .btn-group {
             display: flex;
             gap: 12px;
@@ -286,7 +279,6 @@
             </div>
         </div>
 
-        <!-- Динамическое сообщение -->
         {% set efficiency = (total_score / (rounds_played * 5000) * 100) | int if rounds_played > 0 else 0 %}
         {% if efficiency >= 80 %}
         <div class="message-card">
@@ -315,11 +307,11 @@
         {% endif %}
 
         <div class="btn-group">
-            <a href="/reset_game" class="btn btn-primary">
+            <a href="{{ url_for('game.reset_game') }}" class="btn btn-primary">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
                 Играть снова
             </a>
-            <a href="/leaderboard" class="btn btn-secondary">
+            <a href="{{ url_for('game.leaderboard') }}" class="btn btn-secondary">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21H5a2 2 0 0 1-2-2v-1a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v1a2 2 0 0 1-2 2h-3M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
                 Рекорды
             </a>
@@ -327,7 +319,6 @@
     </div>
 
     <script>
-        // Звёзды на основе эффективности
         const score = {{ total_score }};
         const rounds = {{ rounds_played }};
         const maxPossible = rounds * 5000;

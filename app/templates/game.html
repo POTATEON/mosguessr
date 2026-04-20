@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>МосGuessr — Раунд {{ round_number }}/5</title>
+    <title>МосквGEO — Раунд {{ round_number }}/5</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -197,7 +197,6 @@
             min-height: 0;
         }
 
-        /* Футер окна карты с кнопкой "Угадать" */
         .map-float-footer {
             padding: 12px 14px;
             background: var(--surface2);
@@ -234,7 +233,6 @@
             cursor: not-allowed;
         }
 
-        /* Кнопка "Следующий раунд" */
         .next-round-wrapper {
             position: fixed;
             bottom: 24px;
@@ -269,7 +267,6 @@
             box-shadow: 0 8px 24px rgba(224,90,43,0.3);
         }
 
-        /* Загрузка */
         .loading-overlay {
             position: fixed;
             inset: 0;
@@ -308,7 +305,6 @@
 
         .loading-attempt { font-size: 11px; color: rgba(139,148,158,0.4); }
 
-        /* Результат */
         .result-overlay {
             position: fixed;
             inset: 0;
@@ -441,7 +437,7 @@
 <body>
 
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-logo">МосGuessr</div>
+        <div class="loading-logo">МосквGEO</div>
         <div class="loading-spinner"></div>
         <div class="loading-text" id="loadingText">Ищем панораму</div>
         <div class="loading-attempt" id="attemptCounter"></div>
@@ -452,7 +448,7 @@
             <div class="result-emoji" id="resultEmoji">🎯</div>
             <div class="result-title" id="resultTitle">ОТЛИЧНО!</div>
             <div class="result-score" id="resultScore">+0</div>
-            <div class="result-score-label">очков за раунд</div>
+            <div class="result-score-label" id="resultScoreLabel">очков за раунд</div>
             <div class="result-stats">
                 <div class="result-stat">
                     <div class="result-stat-val" id="resultDist">—</div>
@@ -471,7 +467,7 @@
 
     <div class="topbar">
         <div class="topbar-left">
-            <div class="logo-text">МосGuessr</div>
+            <div class="logo-text">МосквGEO</div>
             <div class="pill">Раунд {{ round_number }} / 5</div>
         </div>
         <div class="score-pill">🏆 <span id="totalScore">{{ total_score }}</span></div>
@@ -627,27 +623,12 @@
             }
         }
 
-        function calculateScore(dist, isMoscow) {
-            const km = dist / 1000;
-
-            // Если это не Москва и расстояние меньше 1 км — джекпот!
-            if (!isMoscow && km <= 20) {
-                return 52000;
-            }
-
-            // Обычная логика для Москвы
-            if (km >= 10) return 0;
-            if (km <= 0.1) return 5000;
-            return Math.round(5000 * (1 - (km - 0.1) / 9.9));
-        }
-
-        function showResult(distance, score, isMoscow) {
-            const km = (distance / 1000).toFixed(2);
-            const acc = Math.max(0, 100 - (parseFloat(km) / 10) * 100).toFixed(1);
+        function showResult(distanceKm, score, isSurprise, actualCity) {
+            const accuracy = Math.max(0, 100 - (distanceKm / 10) * 100).toFixed(1);
 
             let emoji, title, scoreText, labelText;
 
-            if (!isMoscow) {
+            if (isSurprise) {
                 if (score === 52000) {
                     emoji = '🏆🏆🏆';
                     title = 'НЕВЕРОЯТНО! ДЖЕКПОТ!';
@@ -655,7 +636,7 @@
                     labelText = 'очков за раунд';
                 } else {
                     emoji = '🤯';
-                    title = 'УПС! ЭТО НЕ МОСКВА!';
+                    title = `УПС! ЭТО ${actualCity.toUpperCase()}!`;
                     scoreText = '🏙️';
                     labelText = 'другой город';
                 }
@@ -669,10 +650,10 @@
             document.getElementById('resultEmoji').textContent = emoji;
             document.getElementById('resultTitle').textContent = title;
             document.getElementById('resultScore').textContent = scoreText;
-            document.getElementById('resultScore').style.fontSize = (!isMoscow && score === 52000) ? '48px' : '76px';
-            document.querySelector('.result-score-label').textContent = labelText;
-            document.getElementById('resultDist').textContent = km + ' км';
-            document.getElementById('resultAccuracy').textContent = acc + '%';
+            document.getElementById('resultScore').style.fontSize = (isSurprise && score === 52000) ? '48px' : '76px';
+            document.getElementById('resultScoreLabel').textContent = labelText;
+            document.getElementById('resultDist').textContent = distanceKm.toFixed(2) + ' км';
+            document.getElementById('resultAccuracy').textContent = accuracy + '%';
             document.getElementById('resultOverlay').classList.add('visible');
         }
 
@@ -692,7 +673,7 @@
         }
 
         function submitGuess() {
-            if (!userCoords || !realCoords || roundCompleted) return;
+            if (!userCoords || roundCompleted) return;
             roundCompleted = true;
 
             if (mapCollapsed) {
@@ -701,48 +682,46 @@
                 updateCollapseIcon();
             }
 
-            map.geoObjects.add(new ymaps.Placemark(realCoords,
-                { hintContent: 'Правильное место' }, { preset: 'islands#greenIcon' }));
-
-            map.geoObjects.add(new ymaps.Polyline(
-                [userCoords, realCoords], {},
-                { strokeColor: '#f0a500', strokeWidth: 3, strokeOpacity: 0.9, strokeStyle: 'dash' }
-            ));
-
-            map.setBounds(map.geoObjects.getBounds(), { zoomMargin: 50, checkZoomRange: true });
-
-            const distance = ymaps.coordSystem.geo.getDistance(userCoords, realCoords);
-
-            // Проверяем, Москва ли это
-            const isMoscow = (realCoords[0] >= 55.55 && realCoords[0] <= 55.95) &&
-                             (realCoords[1] >= 37.35 && realCoords[1] <= 37.90);
-
-            const score = calculateScore(distance, isMoscow);
-
             fetch('/submit_guess', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    location_id: locationId,
                     guess_lat: userCoords[0],
-                    guess_lon: userCoords[1],
-                    distance: Math.round(distance),
-                    score
+                    guess_lon: userCoords[1]
                 })
-            }).then(r => r.json()).then(d => {
-                document.getElementById('totalScore').textContent = d.total_score;
+            })
+            .then(r => r.json())
+            .then(data => {
+                const realCoordsFromServer = [data.real_lat, data.real_lon];
+
+                map.geoObjects.add(new ymaps.Placemark(realCoordsFromServer,
+                    { hintContent: 'Правильное место' }, { preset: 'islands#greenIcon' }));
+
+                map.geoObjects.add(new ymaps.Polyline(
+                    [userCoords, realCoordsFromServer], {},
+                    { strokeColor: '#f0a500', strokeWidth: 3, strokeOpacity: 0.9, strokeStyle: 'dash' }
+                ));
+
+                map.setBounds(map.geoObjects.getBounds(), { zoomMargin: 50, checkZoomRange: true });
+
+                document.getElementById('totalScore').textContent = data.total_score;
+
+                showResult(data.distance_km, data.round_score, data.is_surprise, data.actual_city);
+
+                document.getElementById('guessBtn').disabled = true;
+
+                const nextBtn = document.getElementById('nextBtn');
+                const isLast = CURRENT_ROUND >= 5;
+                nextBtn.textContent = isLast ? '🏁 Завершить игру' : '➡️ Следующий раунд';
+                if (isLast) nextBtn.classList.add('finish');
+                nextBtn.style.display = 'block';
+                nextBtn.onclick = () => window.location.href = isLast ? '/game_over' : '/game';
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при отправке результата');
+                roundCompleted = false;
             });
-
-            showResult(distance, score, isMoscow);
-
-            document.getElementById('guessBtn').disabled = true;
-
-            const nextBtn = document.getElementById('nextBtn');
-            const isLast = CURRENT_ROUND >= 5;
-            nextBtn.textContent = isLast ? '🏁 Завершить игру' : '➡️ Следующий раунд';
-            if (isLast) nextBtn.classList.add('finish');
-            nextBtn.style.display = 'block';
-            nextBtn.onclick = () => window.location.href = isLast ? '/game_over' : '/game';
         }
 
         document.getElementById('guessBtn').onclick = submitGuess;
