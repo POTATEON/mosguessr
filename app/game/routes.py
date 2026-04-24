@@ -1,5 +1,6 @@
 import traceback
 import sys
+import os
 from flask import render_template, session, redirect, url_for, request, jsonify, current_app
 from app.game import bp
 from app.extensions import db
@@ -163,3 +164,4 @@ def leaderboard():
     # Получаем 20 лучших игр по убыванию очков
     games = db_sess.query(Game).order_by(Game.score.desc()).limit(20).all()
     return render_template('leaderboard.html', games=games)
+

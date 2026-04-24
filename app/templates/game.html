@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>МосквGEO — Раунд {{ round_number }}/5</title>
+    <title>МосGuessr — Раунд {{ round_number }}/5</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -35,6 +35,44 @@
             position: fixed;
             inset: 0;
             z-index: 0;
+        }
+
+        /* Кнопка возврата к началу */
+        .return-to-start {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            z-index: 250;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-right: none;
+            border-bottom: none;
+            border-radius: 12px 0 0 0;
+            color: var(--accent);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.3);
+        }
+
+        .return-to-start:hover {
+            background: var(--surface);
+            border-color: var(--accent);
+            color: #ffb930;
+            padding-right: 28px;
+        }
+
+        .return-to-start svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
         }
 
         .topbar {
@@ -85,8 +123,8 @@
             top: 70px;
             right: 24px;
             z-index: 200;
-            width: 480px;
-            height: 360px;
+            width: 320px;
+            height: 240px;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 16px;
@@ -94,13 +132,24 @@
             display: flex;
             flex-direction: column;
             box-shadow: 0 20px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03) inset;
-            transition: width 0.38s cubic-bezier(.4,0,.2,1), height 0.38s cubic-bezier(.4,0,.2,1), box-shadow 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .map-float:hover {
+            width: 500px;
+            height: 400px;
+            box-shadow: 0 28px 60px rgba(240, 165, 0, 0.15), 0 0 0 1px rgba(240, 165, 0, 0.2) inset;
         }
 
         .map-float.collapsed {
             width: 280px;
             height: 52px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .map-float.collapsed:hover {
+            width: 280px;
+            height: 52px;
         }
 
         .map-float.collapsed #map,
@@ -192,25 +241,108 @@
             display: none;
         }
 
-        #map {
+        .map-container {
             flex: 1;
             min-height: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .map-overlay-curtain {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: var(--surface2);
+            pointer-events: auto;
+            z-index: 3;
+            border-top: 1px solid var(--border);
+        }
+
+        .marker-nav {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 2;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .marker-nav.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .marker-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-size: 16px;
+        }
+
+        .marker-btn:hover {
+            transform: scale(1.1);
+            border-color: var(--accent);
+        }
+
+        .marker-btn.user-marker {
+            color: var(--red);
+        }
+
+        .marker-btn.user-marker:hover {
+            background: rgba(248, 81, 73, 0.15);
+            border-color: var(--red);
+        }
+
+        .marker-btn.real-marker {
+            color: var(--green);
+        }
+
+        .marker-btn.real-marker:hover {
+            background: rgba(63, 185, 80, 0.15);
+            border-color: var(--green);
         }
 
         .map-float-footer {
-            padding: 12px 14px;
+            padding: 0 14px;
+            height: 64px;
             background: var(--surface2);
-            border-top: 1px solid var(--border);
+            border-top: none;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            z-index: 4;
+            margin-top: -12px;
         }
 
-        .btn-guess {
-            width: 100%;
-            padding: 12px;
+        .btn-guess, .btn-next {
+            flex: 0 1 auto;
+            min-width: 200px;
+            padding: 12px 24px;
             border: none;
             border-radius: 8px;
-            background: var(--accent);
-            color: #0d1117;
             font-family: 'Montserrat', sans-serif;
             font-size: 13px;
             font-weight: 700;
@@ -218,11 +350,17 @@
             text-transform: uppercase;
             cursor: pointer;
             transition: all 0.2s ease;
+            transform: translateY(-16px);
+        }
+
+        .btn-guess {
+            background: var(--accent);
+            color: #0d1117;
         }
 
         .btn-guess:hover:not(:disabled) {
             background: #ffb930;
-            transform: translateY(-1px);
+            transform: translateY(-17px);
             box-shadow: 0 4px 12px rgba(240,165,0,0.3);
         }
 
@@ -231,40 +369,28 @@
             color: var(--muted);
             border: 1px solid var(--border);
             cursor: not-allowed;
-        }
-
-        .next-round-wrapper {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 200;
+            transform: translateY(-16px);
         }
 
         .btn-next {
-            padding: 14px 28px;
-            border: none;
-            border-radius: 12px;
             background: var(--green);
             color: #0d1117;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 8px 24px rgba(63,185,80,0.3);
             display: none;
         }
 
         .btn-next:hover {
-            transform: translateY(-2px);
+            transform: translateY(-7px);
             opacity: 0.92;
+            box-shadow: 0 4px 12px rgba(63,185,80,0.3);
         }
 
         .btn-next.finish {
             background: var(--accent2);
-            box-shadow: 0 8px 24px rgba(224,90,43,0.3);
+            box-shadow: 0 4px 12px rgba(224,90,43,0.3);
+        }
+
+        .btn-next.visible {
+            display: block;
         }
 
         .loading-overlay {
@@ -399,6 +525,16 @@
 
         .result-close-btn:hover { background: #ffb930; }
 
+        .clickable-marker {
+            cursor: pointer;
+        }
+
+        .clickable-marker:hover {
+            filter: brightness(1.2);
+            transform: scale(1.1);
+            transition: all 0.2s ease;
+        }
+
         @media (max-width: 600px) {
             .map-float {
                 top: 70px;
@@ -406,6 +542,11 @@
                 left: 12px;
                 width: auto;
                 height: 220px;
+            }
+
+            .map-float:hover {
+                width: auto;
+                height: 300px;
             }
 
             .map-float.collapsed {
@@ -421,14 +562,6 @@
                 height: 50vh;
             }
 
-            .next-round-wrapper {
-                bottom: 12px;
-                right: 12px;
-                left: 12px;
-            }
-
-            .btn-next { width: 100%; }
-
             .topbar { padding: 8px 14px; }
             .logo-text { font-size: 18px; }
         }
@@ -437,7 +570,7 @@
 <body>
 
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-logo">МосквGEO</div>
+        <div class="loading-logo">МосGuessr</div>
         <div class="loading-spinner"></div>
         <div class="loading-text" id="loadingText">Ищем панораму</div>
         <div class="loading-attempt" id="attemptCounter"></div>
@@ -465,9 +598,18 @@
 
     <div id="pano"></div>
 
+    <!-- Кнопка возврата к началу -->
+    <button class="return-to-start" id="goToStart" title="Вернуться к начальной точке">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="8"/>
+            <path d="M12 8v8M8 12l4-4 4 4"/>
+        </svg>
+        Вернуться к началу
+    </button>
+
     <div class="topbar">
         <div class="topbar-left">
-            <div class="logo-text">МосквGEO</div>
+            <div class="logo-text">МосGuessr</div>
             <div class="pill">Раунд {{ round_number }} / 5</div>
         </div>
         <div class="score-pill">🏆 <span id="totalScore">{{ total_score }}</span></div>
@@ -493,23 +635,49 @@
                 </button>
             </div>
         </div>
-        <div id="map"></div>
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-overlay-curtain"></div>
+            <div class="marker-nav" id="markerNav">
+                <button class="marker-btn user-marker" id="goToUserMarker" title="К моей догадке">
+                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="marker-btn real-marker" id="goToRealMarker" title="К правильному месту">
+                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <circle cx="12" cy="9" r="3" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
         <div class="map-float-footer">
             <button class="btn-guess" id="guessBtn" disabled>🎯 Угадать место</button>
+            <button class="btn-next" id="nextBtn">Следующий раунд →</button>
         </div>
     </div>
 
-    <div class="next-round-wrapper">
-        <button class="btn-next" id="nextBtn">Следующий раунд →</button>
-    </div>
+    <!-- Регистрация Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('✅ SW зарегистрирован'))
+                .catch(err => console.error('❌ SW ошибка:', err));
+        }
+    </script>
 
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_api_key }}&lang=ru_RU"></script>
     <script>
         const CURRENT_ROUND = {{ round_number }};
         let map = null;
+        let panoramaPlayer = null;
         let userMarker = null;
+        let realMarker = null;
         let userCoords = null;
         let realCoords = null;
+        let startCoords = null;
         let locationId = null;
         let roundCompleted = false;
         let mapExpanded = false;
@@ -518,8 +686,52 @@
         const mapFloat  = document.getElementById('mapFloat');
         const expandBtn = document.getElementById('expandBtn');
         const collapseBtn = document.getElementById('collapseBtn');
+        const guessBtn = document.getElementById('guessBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const markerNav = document.getElementById('markerNav');
 
-        expandBtn.addEventListener('click', () => {
+        // 🧹 Функция очистки маркеров панорамы
+        function cleanPanoramaMarkers() {
+            if (!panoramaPlayer) return;
+
+            try {
+                // Перехватываем методы загрузки новых панорам
+                const enginePrototype = Object.getPrototypeOf(panoramaPlayer._engine);
+
+                // Переопределяем методы для очистки маркеров
+                enginePrototype._onThoroughfareLoad = function(e) {
+                    if (e) {
+                        e._markers = [];
+                        e._connectionArrows = [];
+                    }
+                    this.setPanorama(e);
+                };
+
+                enginePrototype._onJumpLoad = function(e) {
+                    if (e) {
+                        e._markers = [];
+                        e._connectionArrows = [];
+                    }
+                    this.setPanorama(e);
+                };
+
+                // Очищаем маркеры на текущей панораме
+                if (panoramaPlayer._panorama) {
+                    panoramaPlayer._panorama._markers = [];
+                    panoramaPlayer._panorama._connectionArrows = [];
+                }
+
+                // Принудительно обновляем плеер
+                if (panoramaPlayer._engine && panoramaPlayer._panorama) {
+                    panoramaPlayer._engine.setPanorama(panoramaPlayer._panorama);
+                }
+            } catch (e) {
+                console.warn('Не удалось очистить маркеры панорамы:', e);
+            }
+        }
+
+        expandBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (mapCollapsed) {
                 mapCollapsed = false;
                 mapFloat.classList.remove('collapsed');
@@ -528,10 +740,13 @@
             mapExpanded = !mapExpanded;
             mapFloat.classList.toggle('expanded', mapExpanded);
             updateExpandIcon();
-            setTimeout(() => { if (map) map.container.fitToViewport(); }, 370);
+            setTimeout(() => {
+                if (map) map.container.fitToViewport();
+            }, 370);
         });
 
-        collapseBtn.addEventListener('click', () => {
+        collapseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             mapCollapsed = !mapCollapsed;
             mapFloat.classList.toggle('collapsed', mapCollapsed);
             if (mapCollapsed) {
@@ -541,7 +756,9 @@
             }
             updateCollapseIcon();
             if (!mapCollapsed) {
-                setTimeout(() => { if (map) map.container.fitToViewport(); }, 370);
+                setTimeout(() => {
+                    if (map) map.container.fitToViewport();
+                }, 370);
             }
         });
 
@@ -566,6 +783,78 @@
             collapseBtn.title = mapCollapsed ? 'Развернуть' : 'Свернуть';
         }
 
+        function updateMapSize() {
+            if (map) {
+                setTimeout(() => {
+                    map.container.fitToViewport();
+                }, 300);
+            }
+        }
+
+        const resizeObserver = new ResizeObserver(() => {
+            updateMapSize();
+        });
+        resizeObserver.observe(mapFloat);
+
+        function zoomToMarker(coords) {
+            if (!map) return;
+
+            const zoomSize = 0.005;
+            const bounds = [
+                [coords[0] - zoomSize, coords[1] - zoomSize],
+                [coords[0] + zoomSize, coords[1] + zoomSize]
+            ];
+
+            map.setBounds(bounds, {
+                checkZoomRange: true,
+                duration: 500
+            });
+
+            if (mapCollapsed) {
+                mapCollapsed = false;
+                mapFloat.classList.remove('collapsed');
+                updateCollapseIcon();
+            }
+        }
+
+        // Кнопка возврата к начальной точке
+        document.getElementById('goToStart').addEventListener('click', () => {
+            if (startCoords) {
+                document.getElementById('pano').innerHTML = '';
+
+                ymaps.panorama.createPlayer('pano', startCoords, {
+                    layer: 'yandex#panorama',
+                    controls: [],
+                    suppressMapOpenBlock: true
+                }).then(player => {
+                    panoramaPlayer = player;
+                    cleanPanoramaMarkers(); // 🧹 Очищаем маркеры
+                }).catch(() => {
+                    ymaps.panorama.locate(startCoords).then(panoramas => {
+                        if (panoramas.length) {
+                            panoramaPlayer = new ymaps.panorama.Player('pano', panoramas[0], {
+                                controls: [],
+                                suppressMapOpenBlock: true
+                            });
+                            cleanPanoramaMarkers(); // 🧹 Очищаем маркеры
+                        }
+                    });
+                });
+            }
+        });
+
+        document.getElementById('goToUserMarker').addEventListener('click', () => {
+            if (userCoords) {
+                zoomToMarker(userCoords);
+            }
+        });
+
+        document.getElementById('goToRealMarker').addEventListener('click', () => {
+            if (realCoords) {
+                zoomToMarker(realCoords);
+            }
+        });
+
         async function findAndLoadPanorama(lat, lon, attempt = 1) {
             const MAX = 15;
             document.getElementById('attemptCounter').textContent =
@@ -578,22 +867,35 @@
                 const pano = panoramas[0];
                 const coords = pano.getPosition();
 
+                // Отсекаем высоту (третий элемент)
+                const cleanCoords = [coords[0], coords[1]];
+
+                startCoords = [cleanCoords[0], cleanCoords[1]];
+
                 const r = await fetch('/save_panorama', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lat: coords[0], lon: coords[1] })
+                    body: JSON.stringify({ lat: cleanCoords[0], lon: cleanCoords[1] })
                 });
                 locationId = (await r.json()).location_id;
 
                 try {
-                    await ymaps.panorama.createPlayer('pano', coords, {
+                    panoramaPlayer = await ymaps.panorama.createPlayer('pano', cleanCoords, {
                         layer: 'yandex#panorama', controls: [], suppressMapOpenBlock: true
                     });
                 } catch {
-                    new ymaps.panorama.Player('pano', pano, { controls: [], suppressMapOpenBlock: true });
+                    panoramaPlayer = new ymaps.panorama.Player('pano', pano, { controls: [], suppressMapOpenBlock: true });
                 }
 
-                realCoords = coords;
+                // 🧹 Очищаем маркеры после создания плеера
+                cleanPanoramaMarkers();
+
+                // Добавляем обработчик на случай, если плеер пересоздается
+                panoramaPlayer.events.add('panoramachange', function() {
+                    setTimeout(cleanPanoramaMarkers, 100);
+                });
+
+                realCoords = cleanCoords;
                 document.getElementById('loadingOverlay').style.display = 'none';
 
             } catch {
@@ -609,15 +911,23 @@
                     document.getElementById('loadingText').textContent = 'Загружаем запасной вид';
                     const fb = [55.753544, 37.621202];
                     realCoords = fb;
+                    startCoords = [fb[0], fb[1]];
                     const r = await fetch('/save_panorama', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ lat: fb[0], lon: fb[1] })
                     });
                     locationId = (await r.json()).location_id;
-                    await ymaps.panorama.createPlayer('pano', fb, {
+                    panoramaPlayer = await ymaps.panorama.createPlayer('pano', fb, {
                         layer: 'yandex#panorama', controls: [], suppressMapOpenBlock: true
                     });
+
+                    // 🧹 Очищаем маркеры для запасного вида
+                    cleanPanoramaMarkers();
+                    panoramaPlayer.events.add('panoramachange', function() {
+                        setTimeout(cleanPanoramaMarkers, 100);
+                    });
+
                     document.getElementById('loadingOverlay').style.display = 'none';
                 }
             }
@@ -669,7 +979,9 @@
                 mapFloat.classList.add('expanded');
                 updateExpandIcon();
             }
-            setTimeout(() => { if (map) map.container.fitToViewport(); }, 370);
+            setTimeout(() => {
+                if (map) map.container.fitToViewport();
+            }, 370);
         }
 
         function submitGuess() {
@@ -694,28 +1006,61 @@
             .then(data => {
                 const realCoordsFromServer = [data.real_lat, data.real_lon];
 
-                map.geoObjects.add(new ymaps.Placemark(realCoordsFromServer,
-                    { hintContent: 'Правильное место' }, { preset: 'islands#greenIcon' }));
+                realMarker = new ymaps.Placemark(realCoordsFromServer, {
+                    hintContent: 'Правильное место',
+                    balloonContent: '📍 Правильное место'
+                }, {
+                    preset: 'islands#greenIcon',
+                    iconColor: '#3fb950'
+                });
+
+                realMarker.events.add('click', function() {
+                    zoomToMarker(realCoordsFromServer);
+                });
+
+                map.geoObjects.add(realMarker);
 
                 map.geoObjects.add(new ymaps.Polyline(
-                    [userCoords, realCoordsFromServer], {},
-                    { strokeColor: '#f0a500', strokeWidth: 3, strokeOpacity: 0.9, strokeStyle: 'dash' }
+                    [userCoords, realCoordsFromServer], {}, {
+                        strokeColor: '#f0a500',
+                        strokeWidth: 3,
+                        strokeOpacity: 0.9,
+                        strokeStyle: 'dash'
+                    }
                 ));
 
-                map.setBounds(map.geoObjects.getBounds(), { zoomMargin: 50, checkZoomRange: true });
+                if (userMarker) {
+                    userMarker.options.set('iconColor', '#f85149');
+                    userMarker.properties.set('hintContent', 'Ваша догадка');
+                    userMarker.properties.set('balloonContent', '🎯 Ваша догадка');
+
+                    userMarker.events.remove('click');
+                    userMarker.events.add('click', function() {
+                        zoomToMarker(userCoords);
+                    });
+                }
+
+                const bounds = map.geoObjects.getBounds();
+                if (bounds) {
+                    map.setBounds(bounds, { zoomMargin: 50, checkZoomRange: true });
+                }
 
                 document.getElementById('totalScore').textContent = data.total_score;
 
                 showResult(data.distance_km, data.round_score, data.is_surprise, data.actual_city);
 
-                document.getElementById('guessBtn').disabled = true;
+                guessBtn.style.display = 'none';
+                nextBtn.style.display = 'block';
 
-                const nextBtn = document.getElementById('nextBtn');
+                markerNav.classList.add('visible');
+
                 const isLast = CURRENT_ROUND >= 5;
                 nextBtn.textContent = isLast ? '🏁 Завершить игру' : '➡️ Следующий раунд';
                 if (isLast) nextBtn.classList.add('finish');
-                nextBtn.style.display = 'block';
-                nextBtn.onclick = () => window.location.href = isLast ? '/game_over' : '/game';
+
+                nextBtn.onclick = () => {
+                    window.location.href = isLast ? '/game_over' : '/game';
+                };
             })
             .catch(error => {
                 console.error('Ошибка:', error);
@@ -724,31 +1069,42 @@
             });
         }
 
-        document.getElementById('guessBtn').onclick = submitGuess;
+        guessBtn.onclick = submitGuess;
 
         ymaps.ready(async () => {
             map = new ymaps.Map('map', {
                 center: [55.76, 37.64],
                 zoom: 10,
-                controls: ['zoomControl']
+                controls: []
             });
-            map.controls.get('zoomControl').options.set({ size: 'small', position: { top: 10, right: 10 } });
 
             map.events.add('click', (e) => {
                 if (roundCompleted) return;
                 userCoords = e.get('coords');
-                if (userMarker) userMarker.geometry.setCoordinates(userCoords);
-                else {
-                    userMarker = new ymaps.Placemark(userCoords,
-                        { hintContent: 'Ваша догадка' }, { preset: 'islands#redIcon' });
+                if (userMarker) {
+                    userMarker.geometry.setCoordinates(userCoords);
+                } else {
+                    userMarker = new ymaps.Placemark(userCoords, {
+                        hintContent: 'Ваша догадка',
+                        balloonContent: '🎯 Ваша догадка'
+                    }, {
+                        preset: 'islands#redIcon',
+                        iconColor: '#f85149'
+                    });
                     map.geoObjects.add(userMarker);
                 }
-                document.getElementById('guessBtn').disabled = false;
+                guessBtn.disabled = false;
                 document.getElementById('mapHint').style.opacity = '0';
             });
 
             await findAndLoadPanorama({{ search_lat }}, {{ search_lon }});
+
+            setTimeout(() => {
+                updateMapSize();
+            }, 100);
         });
     </script>
 </body>
 </html>
+
+измени элемент верхний где написано МосGUESSR, чтобы он не пропускал нажатия
