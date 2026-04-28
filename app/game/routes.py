@@ -165,3 +165,56 @@ def leaderboard():
     games = db_sess.query(Game).order_by(Game.score.desc()).limit(20).all()
     return render_template('leaderboard.html', games=games)
 
+@bp.route('/duel')
+@login_required
+def duel_page():
+    """Страница выбора режима дуэли (очередь или лобби)"""
+    return render_template('duel_menu.html')
+
+@bp.route('/duel/queue')
+@login_required
+def duel_queue():
+    """Страница ожидания в очереди"""
+    user = get_current_user()
+    return render_template('duel_queue.html', user=user)
+
+@bp.route('/duel/lobby/<lobby_id>')
+@login_required
+def duel_lobby(lobby_id):
+    """Страница лобби"""
+    user = get_current_user()
+    return render_template('duel_lobby.html', lobby_id=lobby_id, user=user)
+
+@bp.route('/duel/match')
+@login_required
+def duel_match():
+    """Страница самой дуэли"""
+    user = get_current_user()
+    return render_template('duel_match.html',
+                           yandex_api_key=current_app.config['YANDEX_API_KEY'],
+                           user=user)
+
+@bp.route('/duel/create')
+@login_required
+def duel_create():
+    """Страница дуэли с созданием панорам"""
+    user = get_current_user()
+    return render_template('duel_create.html',
+                           yandex_api_key=current_app.config['YANDEX_API_KEY'],
+                           user=user)
+
+@bp.route('/duel/create/queue')
+@login_required
+def duel_create_queue():
+    """Страница очереди для режима создания панорам"""
+    user = get_current_user()
+    return render_template('duel_create_queue.html', user=user)
+
+@bp.route('/duel/create/match')
+@login_required
+def duel_create_match():
+    """Страница самой игры в режиме создания панорам"""
+    user = get_current_user()
+    return render_template('duel_create.html',
+                           yandex_api_key=current_app.config['YANDEX_API_KEY'],
+                           user=user)

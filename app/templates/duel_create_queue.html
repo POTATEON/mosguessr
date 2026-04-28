@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>МосGuessr — Создать панораму</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --border: rgba(255,255,255,0.08);
+            --accent: #f0a500;
+            --accent2: #e05a2b;
+            --text: #e6edf3;
+            --muted: #8b949e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(240,165,0,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(240,165,0,0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 420px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 64px;
+            height: 64px;
+            border: 3px solid var(--border);
+            border-top-color: #9b59b6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 28px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 36px;
+            letter-spacing: 3px;
+            margin-bottom: 12px;
+        }
+
+        h2 span { color: #9b59b6; }
+
+        .status {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 32px;
+        }
+
+        .position-badge {
+            display: inline-block;
+            background: rgba(155, 89, 182, 0.15);
+            border: 1px solid rgba(155, 89, 182, 0.3);
+            border-radius: 20px;
+            padding: 6px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #9b59b6;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h2>Создать <span>панораму</span></h2>
+        <p class="status" id="queueStatus">Поиск соперника...</p>
+        <div class="position-badge" id="positionBadge">Позиция: —</div>
+        <br>
+        <button class="btn" onclick="leaveQueue()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            Отмена
+        </button>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        // 👇 Подключаемся к ОТДЕЛЬНОЙ очереди для creator mode
+        socket.emit('join_creator_queue');
+
+        socket.on('queue_status', function(data) {
+            document.getElementById('queueStatus').textContent = 'Ожидание соперника...';
+            document.getElementById('positionBadge').textContent = 'Позиция: ' + data.position;
+        });
+
+        socket.on('duel_found', function(data) {
+            console.log('Creator duel found:', data);
+
+            // Сохраняем данные
+            sessionStorage.setItem('duel_id', data.duel_id);
+            sessionStorage.setItem('opponent_name', data.opponent_name);
+            sessionStorage.setItem('my_user_id', data.my_user_id);
+
+            console.log('Saved:', {
+                duelId: data.duel_id,
+                userId: data.my_user_id
+            });
+
+            // Переходим на страницу создания (НЕ на обычный матч)
+            setTimeout(() => {
+                window.location.href = '/duel/create/match';
+            }, 100);
+        });
+
+        function leaveQueue() {
+            socket.emit('leave_creator_queue');
+            window.location.href = '/duel';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>МосGuessr — Дуэль с созданием</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --border: rgba(255,255,255,0.12);
+            --accent: #f0a500;
+            --accent2: #e05a2b;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --green: #3fb950;
+            --red: #f85149;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        #gamePano {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            display: none;
+        }
+
+        #mainMap {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+
+        .logo-text {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 4px;
+        }
+
+        .logo-text span { color: var(--accent2); }
+
+        .phase-pill {
+            background: rgba(240,165,0,0.15);
+            border: 1px solid rgba(240,165,0,0.3);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .timer-pill {
+            border-radius: 20px;
+            padding: 4px 16px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+
+        .timer-pill.safe { background: var(--green); color: #0d1117; }
+        .timer-pill.warn { background: var(--accent); color: #0d1117; }
+        .timer-pill.danger { background: var(--red); color: #fff; }
+
+        .opponent-status {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 101;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 6px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .opponent-status.thinking { color: var(--muted); }
+        .opponent-status.answered { color: var(--green); border-color: rgba(63,185,80,0.3); }
+        .opponent-status.waiting { color: var(--accent); }
+
+        .pano-preview {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 200;
+            width: 380px;
+            height: 240px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 20px 48px rgba(0,0,0,0.65);
+        }
+
+        .pano-preview.visible { display: flex; }
+
+        .pano-preview-header {
+            padding: 10px 14px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .pano-preview-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 18px;
+            transition: color 0.2s;
+            padding: 4px;
+        }
+
+        .pano-preview-close:hover { color: var(--accent2); }
+
+        #panoPreview { flex: 1; min-height: 0; }
+
+        .map-float {
+            position: fixed;
+            top: 70px;
+            right: 24px;
+            z-index: 200;
+            width: 350px;
+            height: 280px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 20px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03) inset;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto;
+        }
+
+        .map-float.visible { display: flex; }
+
+        .map-float:hover:not(.collapsed) {
+            width: 520px;
+            height: 420px;
+            box-shadow: 0 28px 60px rgba(240, 165, 0, 0.2), 0 0 0 1px rgba(240, 165, 0, 0.25) inset;
+        }
+
+        .map-float.collapsed {
+            width: 280px;
+            height: 52px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .map-float.collapsed:hover { width: 280px; height: 52px; }
+
+        .map-float.collapsed #guessMap,
+        .map-float.collapsed .map-float-footer { display: none; }
+        .map-float.collapsed .map-float-hint { display: none; }
+
+        .map-float.expanded {
+            width: 720px;
+            height: 520px;
+            box-shadow: 0 28px 60px rgba(0,0,0,0.75), 0 0 0 1px rgba(240,165,0,0.12) inset;
+        }
+
+        .map-float-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .map-float.collapsed .map-float-header { border-bottom: none; }
+        .map-float-left { display: flex; align-items: center; gap: 10px; }
+
+        .map-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--accent2);
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .map-float.collapsed .map-dot { opacity: 1; }
+
+        .map-float-title {
+            font-size: 11px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .map-float-hint {
+            font-size: 10px;
+            color: rgba(139,148,158,0.45);
+            transition: opacity 0.4s;
+        }
+
+        .map-controls { display: flex; align-items: center; gap: 6px; }
+
+        .map-collapse-btn,
+        .map-expand-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .map-collapse-btn:hover,
+        .map-expand-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(240,165,0,0.07);
+        }
+
+        .map-float.collapsed .map-collapse-btn { display: none; }
+
+        .map-container {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #guessMap { width: 100%; height: 100%; cursor: crosshair; }
+
+        .map-overlay-curtain {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: var(--surface2);
+            pointer-events: auto;
+            z-index: 3;
+            border-top: 1px solid var(--border);
+        }
+
+        .map-float-footer {
+            padding: 0 14px;
+            height: 64px;
+            background: var(--surface2);
+            border-top: none;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            z-index: 4;
+            margin-top: -12px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            transform: translateY(-16px);
+        }
+
+        .btn-guess { background: var(--accent2); color: #fff; }
+
+        .btn-guess:hover:not(:disabled) {
+            background: #ff6b3d;
+            transform: translateY(-18px);
+            box-shadow: 0 4px 12px rgba(224,90,43,0.4);
+        }
+
+        .btn-guess:disabled {
+            background: rgba(22,27,34,0.82);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            cursor: not-allowed;
+            transform: translateY(-16px);
+        }
+
+        .confirm-btn-float {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            z-index: 250;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 12px;
+            background: var(--green);
+            color: #0d1117;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 8px 24px rgba(63,185,80,0.3);
+        }
+
+        .confirm-btn-float:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(63,185,80,0.5);
+        }
+
+        .confirm-btn-float:disabled {
+            background: var(--surface2);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .confirm-btn-float.hidden { display: none; }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.visible { opacity: 1; pointer-events: auto; }
+
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 750px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .results-maps-row { display: flex; gap: 16px; margin-bottom: 16px; }
+
+        .result-map-col { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+        .result-map-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .result-map-label.enemy { color: var(--red); }
+        .result-map-label.mine { color: var(--green); }
+
+        .result-map-mini {
+            width: 100%;
+            height: 220px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .scores-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+
+        .scores-table th {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .scores-table td { padding: 12px; font-size: 13px; border-bottom: 1px solid var(--border); }
+        .scores-table .score-high { color: var(--green); font-weight: 700; }
+        .scores-table .score-med { color: var(--accent); font-weight: 700; }
+
+        .btn-next {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: var(--accent2);
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-next:hover:not(:disabled) { background: #ff6b3d; }
+        .btn-next:disabled {
+            background: var(--surface2);
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 650px) {
+            .results-maps-row { flex-direction: column; }
+            .result-map-mini { height: 180px; }
+            .map-float { top: 70px; right: 12px; left: 12px; width: auto; height: 220px; }
+            .map-float:hover:not(.collapsed) { width: auto; height: 320px; }
+            .map-float.collapsed { width: auto; height: 52px; }
+            .map-float.expanded { top: 70px; right: 12px; left: 12px; width: auto; height: 50vh; }
+            .pano-preview { left: 10px; right: 10px; width: auto; height: 180px; }
+            .confirm-btn-float { bottom: 20px; right: 20px; padding: 12px 24px; }
+            .topbar { padding: 8px 14px; }
+            .logo-text { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo-text">Мос<span>Guessr</span></div>
+            <div class="phase-pill" id="phasePill">Выберите точку</div>
+        </div>
+        <div class="timer-pill safe" id="timerPill">45</div>
+    </div>
+
+    <div class="opponent-status thinking" id="opponentStatus">
+        Соперник выбирает...
+    </div>
+
+    <div id="mainMap"></div>
+    <div id="gamePano"></div>
+
+    <div class="pano-preview" id="panoPreviewBox">
+        <div class="pano-preview-header">
+            <span>Предпросмотр</span>
+            <button class="pano-preview-close" onclick="closePanoPreview()">✕</button>
+        </div>
+        <div id="panoPreview"></div>
+    </div>
+
+    <div class="map-float" id="guessMapFloat">
+        <div class="map-float-header">
+            <div class="map-float-left">
+                <div class="map-dot"></div>
+                <div class="map-float-title">Карта Москвы</div>
+            </div>
+            <div class="map-float-hint" id="guessMapHint">Кликните, чтобы выбрать место</div>
+            <div class="map-controls">
+                <button class="map-collapse-btn" id="guessCollapseBtn" title="Свернуть">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M5 12h14"/>
+                    </svg>
+                </button>
+                <button class="map-expand-btn" id="guessExpandBtn" title="Развернуть">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="map-container">
+            <div id="guessMap"></div>
+            <div class="map-overlay-curtain"></div>
+        </div>
+        <div class="map-float-footer">
+            <button class="btn btn-guess" id="guessBtn" disabled onclick="submitGuess()">
+                🎯 Угадать
+            </button>
+        </div>
+    </div>
+
+    <button class="confirm-btn-float" id="confirmBtn" disabled onclick="confirmLocation()">
+        ✅ Подтвердить точку
+    </button>
+
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal-card">
+            <div class="modal-title" id="resultTitle">Результаты раунда</div>
+            <div class="results-maps-row" id="resultsMapsRow">
+                <div class="result-map-col">
+                    <div class="result-map-label enemy">Твоя локация</div>
+                    <div class="result-map-mini" id="enemyResultMap"></div>
+                </div>
+                <div class="result-map-col">
+                    <div class="result-map-label mine">Локация соперника</div>
+                    <div class="result-map-mini" id="myResultMap"></div>
+                </div>
+            </div>
+            <div id="scoresTableContainer"></div>
+            <button class="btn-next" id="nextRoundBtn" onclick="goNextRound()">
+                Следующий раунд →
+            </button>
+        </div>
+    </div>
+
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_api_key }}&lang=ru_RU"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const duelId = parseInt(sessionStorage.getItem('duel_id'));
+        const opponentName = sessionStorage.getItem('opponent_name') || 'Соперник';
+        const myUserId = parseInt(sessionStorage.getItem('my_user_id'));
+
+        console.log(`[CREATE] Duel ${duelId}, User ${myUserId}`);
+
+        if (!duelId || !myUserId) {
+            alert('Ошибка: данные дуэли не найдены. Вернитесь в меню.');
+            window.location.href = '/duel';
+        }
+
+        socket.emit('join_creator_duel', { duel_id: duelId });
+
+        let phase = 'creating';
+        let mainMap = null;
+        let guessMap = null;
+        let selectedCoords = null;
+        let mainPlacemark = null;
+        let guessPlacemark = null;
+        let panoramaPlayer = null;
+        let previewPlayer = null;
+        let timerInterval = null;
+        let timeLeft = 45;
+        let mapExpanded = false;
+        let mapCollapsed = false;
+
+        const guessMapFloat = document.getElementById('guessMapFloat');
+        const guessBtn = document.getElementById('guessBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const guessMapHint = document.getElementById('guessMapHint');
+        const resultsMapsRow = document.getElementById('resultsMapsRow');
+
+        ymaps.ready(() => {
+            mainMap = new ymaps.Map('mainMap', {
+                center: [55.751244, 37.618423],
+                zoom: 10,
+                controls: ['zoomControl']
+            });
+
+            mainMap.events.add('click', (e) => {
+                if (phase !== 'creating') return;
+                const coords = e.get('coords');
+                selectedCoords = coords;
+                if (mainPlacemark) {
+                    mainPlacemark.geometry.setCoordinates(coords);
+                } else {
+                    mainPlacemark = new ymaps.Placemark(coords, {
+                        hintContent: 'Выбранное место',
+                        balloonContent: '📍 Ваша точка'
+                    }, {
+                        draggable: true,
+                        preset: 'islands#redIcon',
+                        iconColor: '#e05a2b'
+                    });
+                    mainMap.geoObjects.add(mainPlacemark);
+                    mainPlacemark.events.add('dragend', () => {
+                        selectedCoords = mainPlacemark.geometry.getCoordinates();
+                        checkPanorama(selectedCoords);
+                    });
+                }
+                confirmBtn.disabled = false;
+                checkPanorama(coords);
+            });
+
+            guessMap = new ymaps.Map('guessMap', {
+                center: [55.751244, 37.618423],
+                zoom: 10,
+                controls: []
+            });
+
+            guessMap.events.add('click', (e) => {
+                if (phase !== 'guessing') return;
+                const coords = e.get('coords');
+                if (guessPlacemark) {
+                    guessPlacemark.geometry.setCoordinates(coords);
+                } else {
+                    guessPlacemark = new ymaps.Placemark(coords, {
+                        hintContent: 'Ваша догадка',
+                        balloonContent: '🎯 Ваша догадка'
+                    }, {
+                        preset: 'islands#redIcon',
+                        iconColor: '#f85149'
+                    });
+                    guessMap.geoObjects.add(guessPlacemark);
+                }
+                guessBtn.disabled = false;
+                guessMapHint.style.opacity = '0';
+            });
+
+            const resizeObserver = new ResizeObserver(() => {
+                if (guessMap) {
+                    setTimeout(() => {
+                        guessMap.container.fitToViewport();
+                    }, 350);
+                }
+            });
+            resizeObserver.observe(guessMapFloat);
+        });
+
+        document.getElementById('guessExpandBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (mapCollapsed) {
+                mapCollapsed = false;
+                guessMapFloat.classList.remove('collapsed');
+                updateCollapseIcon();
+            }
+            mapExpanded = !mapExpanded;
+            guessMapFloat.classList.toggle('expanded', mapExpanded);
+            updateExpandIcon();
+            setTimeout(() => { if (guessMap) guessMap.container.fitToViewport(); }, 370);
+        });
+
+        document.getElementById('guessCollapseBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            mapCollapsed = !mapCollapsed;
+            guessMapFloat.classList.toggle('collapsed', mapCollapsed);
+            if (mapCollapsed) {
+                mapExpanded = false;
+                guessMapFloat.classList.remove('expanded');
+                updateExpandIcon();
+            }
+            updateCollapseIcon();
+            if (!mapCollapsed) {
+                setTimeout(() => { if (guessMap) guessMap.container.fitToViewport(); }, 370);
+            }
+        });
+
+        function updateExpandIcon() {
+            document.getElementById('guessExpandBtn').innerHTML = mapExpanded
+                ? `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>`
+                : `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
+        }
+
+        function updateCollapseIcon() {
+            const btn = document.getElementById('guessCollapseBtn');
+            btn.innerHTML = mapCollapsed
+                ? `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`
+                : `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>`;
+            btn.title = mapCollapsed ? 'Развернуть' : 'Свернуть';
+        }
+
+        async function checkPanorama(coords) {
+            try {
+                const panoramas = await ymaps.panorama.locate(coords);
+                if (panoramas && panoramas.length > 0) {
+                    showPanoPreview(panoramas[0]);
+                    confirmBtn.disabled = false;
+                } else {
+                    hidePanoPreview();
+                    confirmBtn.disabled = true;
+                    showNotification('Нет панорамы в этой точке', 'error');
+                }
+            } catch (e) {
+                hidePanoPreview();
+                confirmBtn.disabled = true;
+            }
+        }
+
+        function showPanoPreview(panorama) {
+            document.getElementById('panoPreviewBox').classList.add('visible');
+            if (previewPlayer) { try { previewPlayer.destroy(); } catch(e) {} }
+            document.getElementById('panoPreview').innerHTML = '';
+            previewPlayer = new ymaps.panorama.Player('panoPreview', panorama, {
+                controls: [],
+                suppressMapOpenBlock: true
+            });
+        }
+
+        function hidePanoPreview() {
+            document.getElementById('panoPreviewBox').classList.remove('visible');
+            if (previewPlayer) { try { previewPlayer.destroy(); } catch(e) {} previewPlayer = null; }
+        }
+
+        function closePanoPreview() { hidePanoPreview(); }
+
+        function showNotification(text, type) {
+            const n = document.createElement('div');
+            n.style.cssText = `position:fixed;top:80px;left:50%;transform:translateX(-50%);background:${type==='success'?'rgba(63,185,80,0.9)':'rgba(248,81,73,0.9)'};color:white;padding:12px 24px;border-radius:8px;font-weight:600;z-index:9999;`;
+            n.textContent = text;
+            document.body.appendChild(n);
+            setTimeout(() => { n.style.opacity='0'; n.style.transition='opacity 0.3s'; setTimeout(()=>n.remove(),300); }, 2000);
+        }
+
+        function confirmLocation() {
+            if (!selectedCoords) return;
+            socket.emit('creator_location_selected', { duel_id: duelId, lat: selectedCoords[0], lon: selectedCoords[1] });
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Ожидание соперника...';
+            document.getElementById('opponentStatus').textContent = 'Ожидание соперника...';
+            document.getElementById('opponentStatus').className = 'opponent-status waiting';
+            phase = 'waiting';
+            mainMap.behaviors.disable('drag');
+            mainMap.behaviors.disable('scrollZoom');
+        }
+
+        socket.on('start_guessing_phase', (data) => {
+            phase = 'guessing';
+            document.getElementById('mainMap').style.display = 'none';
+            document.getElementById('gamePano').style.display = 'block';
+            confirmBtn.classList.add('hidden');
+            guessMapFloat.classList.add('visible');
+            document.getElementById('phasePill').textContent = 'Угадайте';
+            document.getElementById('opponentStatus').textContent = opponentName + ' тоже угадывает...';
+            document.getElementById('opponentStatus').className = 'opponent-status thinking';
+            hidePanoPreview();
+            loadOpponentPanorama(data.lat, data.lon);
+            startTimer(60);
+            setTimeout(() => { if (guessMap) guessMap.container.fitToViewport(); }, 400);
+        });
+
+        async function loadOpponentPanorama(lat, lon) {
+            try {
+                const panoramas = await ymaps.panorama.locate([lat, lon]);
+                if (panoramas && panoramas.length > 0) {
+                    panoramaPlayer = new ymaps.panorama.Player('gamePano', panoramas[0], { controls: [], suppressMapOpenBlock: true });
+                } else {
+                    document.getElementById('gamePano').innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);"><div style="text-align:center;"><div style="font-size:48px;">🗺️</div><div>Панорама недоступна</div><div style="font-size:12px;">Отметьте место на карте</div></div></div>`;
+                }
+            } catch (e) {}
+        }
+
+        function submitGuess() {
+            if (!guessPlacemark) return;
+            const coords = guessPlacemark.geometry.getCoordinates();
+            socket.emit('submit_creator_guess', { duel_id: duelId, guess_lat: coords[0], guess_lon: coords[1] });
+            guessBtn.disabled = true;
+            guessBtn.textContent = 'Ожидание...';
+            document.getElementById('opponentStatus').textContent = 'Ожидание соперника...';
+            document.getElementById('opponentStatus').className = 'opponent-status waiting';
+        }
+
+        // ===========================
+        // РЕЗУЛЬТАТЫ РАУНДА
+        // ===========================
+        socket.on('creator_round_result', (data) => {
+            stopTimer();
+            phase = 'results';
+
+            // Показываем карты (могли быть скрыты при финише)
+            resultsMapsRow.style.display = 'flex';
+
+            document.getElementById('resultModal').classList.add('visible');
+
+            setTimeout(() => {
+                document.getElementById('enemyResultMap').innerHTML = '';
+                document.getElementById('myResultMap').innerHTML = '';
+
+                // ЛЕВАЯ КАРТА: Твоя локация + Догадка соперника
+                const myLocLat = data.my_location?.lat;
+                const myLocLon = data.my_location?.lon;
+                const enemyGuessLat = data.enemy_guess?.lat;
+                const enemyGuessLon = data.enemy_guess?.lon;
+
+                const leftMap = new ymaps.Map('enemyResultMap', {
+                    center: (myLocLat && myLocLon) ? [myLocLat, myLocLon] : [55.75, 37.62],
+                    zoom: 12,
+                    controls: []
+                });
+
+                if (myLocLat && myLocLon) {
+                    leftMap.geoObjects.add(new ymaps.Placemark(
+                        [myLocLat, myLocLon],
+                        { hintContent: 'Твоя локация', balloonContent: '📍 Здесь ты поставил точку' },
+                        { preset: 'islands#greenIcon', iconColor: '#3fb950' }
+                    ));
+
+                    if (enemyGuessLat && enemyGuessLon) {
+                        leftMap.geoObjects.add(new ymaps.Placemark(
+                            [enemyGuessLat, enemyGuessLon],
+                            { hintContent: 'Догадка соперника', balloonContent: `🎯 Догадка ${opponentName}` },
+                            { preset: 'islands#redIcon', iconColor: '#f85149' }
+                        ));
+                        leftMap.geoObjects.add(new ymaps.Polyline(
+                            [[enemyGuessLat, enemyGuessLon], [myLocLat, myLocLon]],
+                            {},
+                            { strokeColor: '#f0a500', strokeWidth: 3, strokeOpacity: 1, strokeStyle: 'dash' }
+                        ));
+                        leftMap.setBounds(leftMap.geoObjects.getBounds(), { zoomMargin: 40, checkZoomRange: true });
+                    }
+                }
+
+                // ПРАВАЯ КАРТА: Локация соперника + Твоя догадка
+                const oppLat = data.opponent_lat;
+                const oppLon = data.opponent_lon;
+                const myGuessLat = data.my_guess?.lat;
+                const myGuessLon = data.my_guess?.lon;
+
+                const rightMap = new ymaps.Map('myResultMap', {
+                    center: (oppLat && oppLon) ? [oppLat, oppLon] : [55.75, 37.62],
+                    zoom: 12,
+                    controls: []
+                });
+
+                if (oppLat && oppLon) {
+                    rightMap.geoObjects.add(new ymaps.Placemark(
+                        [oppLat, oppLon],
+                        { hintContent: 'Локация соперника', balloonContent: '📍 Здесь соперник поставил точку' },
+                        { preset: 'islands#greenIcon', iconColor: '#3fb950' }
+                    ));
+
+                    if (myGuessLat && myGuessLon) {
+                        rightMap.geoObjects.add(new ymaps.Placemark(
+                            [myGuessLat, myGuessLon],
+                            { hintContent: 'Твоя догадка', balloonContent: '🎯 Твоя догадка' },
+                            { preset: 'islands#redIcon', iconColor: '#f85149' }
+                        ));
+                        rightMap.geoObjects.add(new ymaps.Polyline(
+                            [[myGuessLat, myGuessLon], [oppLat, oppLon]],
+                            {},
+                            { strokeColor: '#f0a500', strokeWidth: 3, strokeOpacity: 1, strokeStyle: 'dash' }
+                        ));
+                        rightMap.setBounds(rightMap.geoObjects.getBounds(), { zoomMargin: 40, checkZoomRange: true });
+                    }
+                }
+
+                let html = '<table class="scores-table"><thead><tr><th>Игрок</th><th>Дистанция</th><th>Очки</th></tr></thead><tbody>';
+                data.players.forEach(p => {
+                    const cls = p.score >= 4000 ? 'score-high' : p.score >= 2000 ? 'score-med' : '';
+                    html += `<tr><td>${p.name} ${p.user_id === myUserId ? '(Вы)' : ''}</td><td>${p.distance ? p.distance.toFixed(2) + ' км' : '—'}</td><td class="${cls}">${p.score || 0}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                document.getElementById('scoresTableContainer').innerHTML = html;
+
+                const btn = document.getElementById('nextRoundBtn');
+                btn.textContent = data.is_last_round ? 'Завершить' : 'Следующий раунд →';
+                btn.disabled = false;
+                btn.onclick = goNextRound;
+            }, 300);
+        });
+
+        function goNextRound() {
+            socket.emit('next_creator_round', { duel_id: duelId });
+            document.getElementById('resultModal').classList.remove('visible');
+            document.getElementById('nextRoundBtn').disabled = true;
+            document.getElementById('enemyResultMap').innerHTML = '';
+            document.getElementById('myResultMap').innerHTML = '';
+            resetForNextRound();
+        }
+
+        function resetForNextRound() {
+            phase = 'creating';
+
+            // Возвращаем контейнер с картами
+            resultsMapsRow.style.display = 'flex';
+
+            document.getElementById('mainMap').style.display = 'block';
+            document.getElementById('gamePano').style.display = 'none';
+            document.getElementById('gamePano').innerHTML = '';
+            guessMapFloat.classList.remove('visible');
+            confirmBtn.classList.remove('hidden');
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '✅ Подтвердить точку';
+            guessBtn.disabled = true;
+            guessBtn.textContent = '🎯 Угадать';
+            guessMapHint.style.opacity = '1';
+            document.getElementById('phasePill').textContent = 'Выберите точку';
+            document.getElementById('opponentStatus').textContent = 'Соперник выбирает...';
+            document.getElementById('opponentStatus').className = 'opponent-status thinking';
+            if (mainPlacemark) { mainMap.geoObjects.remove(mainPlacemark); mainPlacemark = null; }
+            if (guessPlacemark) { guessMap.geoObjects.remove(guessPlacemark); guessPlacemark = null; }
+            if (panoramaPlayer) { try { panoramaPlayer.destroy(); } catch(e) {} panoramaPlayer = null; }
+            selectedCoords = null;
+            mainMap.behaviors.enable('drag');
+            mainMap.behaviors.enable('scrollZoom');
+            startTimer(45);
+        }
+
+        // ===========================
+        // ЗАВЕРШЕНИЕ ДУЭЛИ
+        // ===========================
+        socket.on('duel_finished', (data) => {
+            stopTimer();
+
+            const myScore = data.total_scores[myUserId] || 0;
+            const oppId = Object.keys(data.total_scores).find(id => id != myUserId);
+            const oppScore = oppId ? (data.total_scores[oppId] || 0) : 0;
+
+            let title, scoreHTML;
+            if (myScore > oppScore) {
+                title = '🏆 Вы победили!';
+                scoreHTML = `<p style="font-size:64px;color:var(--green);font-family:'Bebas Neue',sans-serif;text-align:center;margin:20px 0;">${myScore} : ${oppScore}</p>`;
+            } else if (oppScore > myScore) {
+                title = '😞 Вы проиграли';
+                scoreHTML = `<p style="font-size:64px;color:var(--red);font-family:'Bebas Neue',sans-serif;text-align:center;margin:20px 0;">${myScore} : ${oppScore}</p>`;
+            } else {
+                title = '🤝 Ничья!';
+                scoreHTML = `<p style="font-size:64px;color:var(--accent);font-family:'Bebas Neue',sans-serif;text-align:center;margin:20px 0;">${myScore} : ${oppScore}</p>`;
+            }
+
+            // 🔥 Скрываем контейнер с картами
+            resultsMapsRow.style.display = 'none';
+
+            // Очищаем карты
+            document.getElementById('enemyResultMap').innerHTML = '';
+            document.getElementById('myResultMap').innerHTML = '';
+
+            // Показываем модалку
+            document.getElementById('resultModal').classList.add('visible');
+            document.getElementById('resultTitle').textContent = title;
+            document.getElementById('scoresTableContainer').innerHTML = scoreHTML;
+
+            // 🔥 Кнопка всегда активна
+            const btn = document.getElementById('nextRoundBtn');
+            btn.textContent = 'В меню дуэлей';
+            btn.disabled = false;
+            btn.onclick = () => window.location.href = '/duel';
+        });
+
+        function startTimer(seconds) {
+            timeLeft = seconds;
+            updateTimerDisplay();
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    stopTimer();
+                    if (phase === 'creating' && selectedCoords) confirmLocation();
+                    else if (phase === 'guessing' && guessPlacemark) submitGuess();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() { clearInterval(timerInterval); }
+
+        function updateTimerDisplay() {
+            const pill = document.getElementById('timerPill');
+            pill.textContent = timeLeft;
+            pill.classList.remove('safe', 'warn', 'danger');
+            if (timeLeft <= 10) pill.classList.add('danger');
+            else if (timeLeft <= 20) pill.classList.add('warn');
+            else pill.classList.add('safe');
+        }
+
+        socket.on('opponent_selected_location', () => {
+            document.getElementById('opponentStatus').textContent = opponentName + ' выбрал точку';
+            document.getElementById('opponentStatus').className = 'opponent-status answered';
+        });
+
+        socket.on('opponent_guessed', () => {
+            document.getElementById('opponentStatus').textContent = opponentName + ' сделал догадку';
+            document.getElementById('opponentStatus').className = 'opponent-status answered';
+        });
+
+        socket.on('error', (data) => alert(data.message));
+
+        socket.on('opponent_disconnected', () => {
+            alert('Соперник отключился');
+            window.location.href = '/duel';
+        });
+
+        startTimer(45);
+    </script>
+</body>
+</html>

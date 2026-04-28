@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>МосGuessr — Лобби</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --border: rgba(255,255,255,0.08);
+            --accent: #f0a500;
+            --accent2: #e05a2b;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --green: #3fb950;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(240,165,0,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(240,165,0,0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 460px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 48px;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+
+        h2 span { color: var(--accent2); }
+
+        .lobby-id-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .lobby-id-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .lobby-id-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            letter-spacing: 4px;
+            color: var(--accent2);
+        }
+
+        .copy-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--muted);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .player-slot {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s;
+        }
+
+        .player-slot.ready {
+            border-color: rgba(63,185,80,0.3);
+            background: rgba(63,185,80,0.05);
+        }
+
+        .player-slot.empty {
+            opacity: 0.5;
+            border-style: dashed;
+        }
+
+        .player-name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .player-status {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .status-ready { color: var(--green); }
+        .status-waiting { color: var(--muted); }
+
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-ready {
+            background: var(--green);
+            color: #0d1117;
+        }
+
+        .btn-ready:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(63,185,80,0.3);
+        }
+
+        .btn-ready:disabled {
+            background: var(--surface2);
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+
+        .btn-back {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            margin-top: 16px;
+        }
+
+        .btn-back:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .status-msg {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🏠 <span>Лобби</span></h2>
+
+        <div class="lobby-id-box">
+            <div>
+                <div class="lobby-id-label">Код лобби</div>
+                <div class="lobby-id-value" id="lobbyIdDisplay">{{ lobby_id }}</div>
+            </div>
+            <button class="copy-btn" onclick="copyLobbyLink()">📋 Копировать</button>
+        </div>
+
+        <div class="players-list" id="playersList">
+            <div class="player-slot empty">
+                <span class="player-name">Загрузка...</span>
+                <span class="player-status status-waiting">—</span>
+            </div>
+        </div>
+
+        <button id="readyBtn" class="btn btn-ready" onclick="setReady()">
+            ✅ Готов
+        </button>
+
+        <br>
+        <a href="/duel" class="btn btn-back">← Назад</a>
+
+        <div class="status-msg" id="statusMsg"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // ========================
+        // КОНСТАНТЫ ИЗ ШАБЛОНА
+        // ========================
+        const socket = io();
+        const lobbyId = '{{ lobby_id }}';
+        const myName = '{{ user.name if user else "Игрок" }}';
+        const myUserId = {{ user.id if user else 0 }};
+
+        console.log('==========================================');
+        console.log('[LOBBY] Starting lobby page');
+        console.log('[LOBBY] lobbyId:', lobbyId);
+        console.log('[LOBBY] myName:', myName);
+        console.log('[LOBBY] myUserId:', myUserId);
+        console.log('==========================================');
+
+        // 🔥 Проверка данных
+        if (!myUserId) {
+            console.error('[LOBBY] ERROR: myUserId is 0 or undefined!');
+            document.getElementById('statusMsg').textContent = '❌ Ошибка: пользователь не авторизован';
+        }
+
+        // ========================
+        // ПОДКЛЮЧЕНИЕ К ЛОББИ
+        // ========================
+        console.log('[LOBBY] Emitting join_lobby with:', { lobby_id: lobbyId });
+        socket.emit('join_lobby', { lobby_id: lobbyId });
+
+        // ========================
+        // ОБРАБОТЧИКИ СОБЫТИЙ
+        // ========================
+
+        // Обновление списка игроков
+        socket.on('lobby_update', function(data) {
+            console.log('[LOBBY] lobby_update received:', data);
+            console.log('[LOBBY] Players:', data.players);
+            updatePlayersList(data);
+        });
+
+        // 🔥 ДУЭЛЬ НАЙДЕНА - ГЛАВНОЕ ИЗМЕНЕНИЕ
+        socket.on('duel_found', function(data) {
+            console.log('==========================================');
+            console.log('[LOBBY] 🎯 duel_found event received!');
+            console.log('[LOBBY] Full data:', data);
+            console.log('[LOBBY] duel_id:', data.duel_id);
+            console.log('[LOBBY] opponent_name:', data.opponent_name);
+            console.log('[LOBBY] my_user_id from event:', data.my_user_id);
+            console.log('[LOBBY] myUserId from template:', myUserId);
+            console.log('==========================================');
+
+            // 🔥 Сохраняем данные В ПРАВИЛЬНОМ ПОРЯДКЕ
+            const duelId = data.duel_id;
+            const opponentName = data.opponent_name || 'Соперник';
+
+            // 👇 ВАЖНО: Используем my_user_id из события, если есть, иначе из шаблона
+            const userId = data.my_user_id || myUserId;
+
+            console.log('[LOBBY] Preparing to save:');
+            console.log('[LOBBY] - duelId:', duelId);
+            console.log('[LOBBY] - opponentName:', opponentName);
+            console.log('[LOBBY] - userId:', userId);
+
+            // Проверяем что все данные есть
+            if (!duelId) {
+                console.error('[LOBBY] ❌ CRITICAL: duel_id is missing!');
+                document.getElementById('statusMsg').textContent = '❌ Ошибка: не получен ID дуэли';
+                return;
+            }
+
+            if (!userId) {
+                console.error('[LOBBY] ❌ CRITICAL: user_id is missing!');
+                document.getElementById('statusMsg').textContent = '❌ Ошибка: не получен ID пользователя';
+                return;
+            }
+
+            // 🔥 СОХРАНЯЕМ В sessionStorage
+            try {
+                sessionStorage.setItem('duel_id', duelId);
+                sessionStorage.setItem('opponent_name', opponentName);
+                sessionStorage.setItem('my_user_id', userId);
+
+                console.log('[LOBBY] ✅ Data saved to sessionStorage successfully');
+            } catch (e) {
+                console.error('[LOBBY] ❌ Failed to save to sessionStorage:', e);
+                document.getElementById('statusMsg').textContent = '❌ Ошибка сохранения данных';
+                return;
+            }
+
+            // 🔥 ПРОВЕРЯЕМ ЧТО СОХРАНИЛОСЬ
+            const savedDuelId = sessionStorage.getItem('duel_id');
+            const savedOpponent = sessionStorage.getItem('opponent_name');
+            const savedUserId = sessionStorage.getItem('my_user_id');
+
+            console.log('[LOBBY] Verification - saved data:');
+            console.log('[LOBBY] - duel_id:', savedDuelId);
+            console.log('[LOBBY] - opponent_name:', savedOpponent);
+            console.log('[LOBBY] - my_user_id:', savedUserId);
+
+            if (!savedDuelId || !savedUserId) {
+                console.error('[LOBBY] ❌ Verification failed! Data not saved correctly');
+                document.getElementById('statusMsg').textContent = '❌ Ошибка: данные не сохранились';
+                return;
+            }
+
+            // 🔥 ПЕРЕХОДИМ НА СТРАНИЦУ ДУЭЛИ
+            console.log('[LOBBY] ✅ All checks passed, redirecting to match...');
+            document.getElementById('statusMsg').textContent = '✅ Дуэль найдена! Переходим...';
+
+            // Небольшая задержка чтобы убедиться что данные точно сохранились
+            setTimeout(() => {
+                console.log('[LOBBY] 🚀 Redirecting now to /duel/match');
+                window.location.href = '/duel/match';
+            }, 300);
+        });
+
+        // Обработка ошибок
+        socket.on('error', function(data) {
+            console.error('[LOBBY] ❌ Socket error:', data);
+            document.getElementById('statusMsg').textContent = '❌ ' + data.message;
+        });
+
+        // ========================
+        // ФУНКЦИИ
+        // ========================
+
+        function updatePlayersList(data) {
+            console.log('[LOBBY] Updating players list');
+            const list = document.getElementById('playersList');
+            let html = '';
+
+            if (!data.players || data.players.length === 0) {
+                html = `<div class="player-slot empty">
+                    <span class="player-name">Ожидание игроков...</span>
+                    <span class="player-status status-waiting">—</span>
+                </div>`;
+            } else {
+                data.players.forEach(function(p) {
+                    const isMe = p.user_id == myUserId;
+                    console.log('[LOBBY] Player:', p.name, 'id:', p.user_id, 'ready:', p.ready, 'isMe:', isMe);
+
+                    html += `<div class="player-slot ${p.ready ? 'ready' : ''}">
+                        <span class="player-name">${p.name} ${isMe ? '(Вы)' : ''}</span>
+                        <span class="player-status ${p.ready ? 'status-ready' : 'status-waiting'}">
+                            ${p.ready ? '✅ Готов' : '⏳ Ожидание...'}
+                        </span>
+                    </div>`;
+                });
+
+                // Если только 1 игрок, показываем пустой слот
+                if (data.players.length < 2) {
+                    html += `<div class="player-slot empty">
+                        <span class="player-name">Ожидание соперника...</span>
+                        <span class="player-status status-waiting">—</span>
+                    </div>`;
+                }
+            }
+
+            list.innerHTML = html;
+
+            // Кнопка "Готов"
+            const readyBtn = document.getElementById('readyBtn');
+            if (data.can_rematch) {
+                readyBtn.disabled = false;
+                readyBtn.textContent = '🔄 Готов к рематчу';
+                readyBtn.style.background = 'var(--accent2)';
+            } else if (data.players && data.players.length >= 2) {
+                readyBtn.disabled = false;
+                readyBtn.textContent = '✅ Готов';
+                readyBtn.style.background = 'var(--green)';
+            } else {
+                readyBtn.disabled = true;
+                readyBtn.textContent = '✅ Готов';
+                readyBtn.style.background = 'var(--surface2)';
+            }
+        }
+
+        function setReady() {
+            console.log('[LOBBY] Setting ready for user:', myUserId);
+            socket.emit('player_ready', { lobby_id: lobbyId });
+
+            const readyBtn = document.getElementById('readyBtn');
+            readyBtn.disabled = true;
+            readyBtn.textContent = 'Ожидание соперника...';
+            readyBtn.style.background = 'var(--surface2)';
+        }
+
+        function copyLobbyLink() {
+            const link = window.location.origin + '/duel/lobby/' + lobbyId;
+            console.log('[LOBBY] Copying link:', link);
+
+            navigator.clipboard.writeText(link).then(function() {
+                const msg = document.getElementById('statusMsg');
+                msg.textContent = '✅ Ссылка скопирована!';
+                setTimeout(function() {
+                    msg.textContent = '';
+                }, 2000);
+            }).catch(function() {
+                prompt('Скопируйте ссылку:', link);
+            });
+        }
+
+        // При загрузке страницы
+        console.log('[LOBBY] ✅ Page fully loaded, waiting for events...');
+    </script>
+</body>
+</html>

@@ -85,7 +85,7 @@
             padding: 12px 20px;
             background: var(--surface2);
             border-bottom: 1px solid var(--border);
-            pointer-events: none;
+            pointer-events: auto;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
 
@@ -95,7 +95,7 @@
             font-family: 'Bebas Neue', sans-serif;
             font-size: 22px;
             letter-spacing: 4px;
-            color: var(--accent);
+            color: var(--text);
         }
 
         .pill {
@@ -379,7 +379,7 @@
         }
 
         .btn-next:hover {
-            transform: translateY(-7px);
+            transform: translateY(-17px);
             opacity: 0.92;
             box-shadow: 0 4px 12px rgba(63,185,80,0.3);
         }
@@ -412,12 +412,11 @@
             color: var(--accent);
         }
 
-        .loading-spinner {
-            width: 36px; height: 36px;
-            border: 2px solid rgba(240,165,0,0.15);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.75s linear infinite;
+        .loading-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 56px;
+            letter-spacing: 6px;
+            color: var(--text);
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -570,7 +569,7 @@
 <body>
 
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-logo">МосGuessr</div>
+        <div class="loading-logo">Мос<span style="color: var(--accent);">Guessr</span></div>
         <div class="loading-spinner"></div>
         <div class="loading-text" id="loadingText">Ищем панораму</div>
         <div class="loading-attempt" id="attemptCounter"></div>
@@ -609,7 +608,7 @@
 
     <div class="topbar">
         <div class="topbar-left">
-            <div class="logo-text">МосGuessr</div>
+            <div class="logo-text">Мос<span style="color: var(--accent);">Guessr</span></div>
             <div class="pill">Раунд {{ round_number }} / 5</div>
         </div>
         <div class="score-pill">🏆 <span id="totalScore">{{ total_score }}</span></div>
@@ -658,15 +657,6 @@
             <button class="btn-next" id="nextBtn">Следующий раунд →</button>
         </div>
     </div>
-
-    <!-- Регистрация Service Worker -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('✅ SW зарегистрирован'))
-                .catch(err => console.error('❌ SW ошибка:', err));
-        }
-    </script>
 
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_api_key }}&lang=ru_RU"></script>
     <script>
@@ -1106,5 +1096,3 @@
     </script>
 </body>
 </html>
-
-измени элемент верхний где написано МосGUESSR, чтобы он не пропускал нажатия

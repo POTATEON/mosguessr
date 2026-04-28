@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>МосквGEO — Угадай место</title>
+    <title>МосGuessr — Угадай место</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -224,6 +224,17 @@
             box-shadow: 0 8px 24px rgba(240,165,0,0.3);
         }
 
+        .btn-duel {
+            background: var(--accent2);
+            color: #fff;
+        }
+
+        .btn-duel:hover {
+            background: #ff6b3d;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(224,90,43,0.4);
+        }
+
         .btn-secondary {
             background: transparent;
             color: var(--text);
@@ -265,7 +276,7 @@
 
     <div class="container">
         <div class="logo">
-            <div class="logo-title">МосквGEO</div>
+            <div class="logo-title">Мос<span>Guessr</span></div>
             <div class="logo-sub">Угадай место по панораме</div>
         </div>
 
@@ -294,7 +305,11 @@
         <div class="btn-group">
             <a href="{{ url_for('game.game') }}" class="btn btn-primary">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
-                Начать игру
+                Одиночная игра
+            </a>
+            <a href="{{ url_for('game.duel_page') }}" class="btn btn-duel">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 10V8A6 6 0 0 0 5 8v2M12 3v1M12 14v1M8 14h8M7 21h10a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2z"/></svg>
+                Дуэль
             </a>
             <a href="{{ url_for('game.leaderboard') }}" class="btn btn-secondary">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 21H5a2 2 0 0 1-2-2v-1a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v1a2 2 0 0 1-2 2h-3M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
