@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, Response
 from app.config import Config
 from app.extensions import db, migrate, socketio
 import os
@@ -42,8 +42,6 @@ def create_app(config_class=Config):
         user = get_current_user()
         return render_template('index.html', user=user)
 
-    from flask import Response
-
     @app.route('/duel_create.js')
     def duel_create():
         static_dir = os.path.join(os.path.dirname(__file__), 'static/js')
@@ -53,4 +51,5 @@ def create_app(config_class=Config):
             content = f.read()
 
         return Response(content, mimetype='application/javascript')
+    
     return app
