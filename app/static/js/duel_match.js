@@ -58,6 +58,11 @@ ymaps.ready(function() {
         controls: []
     });
 
+    // Передаём карту в UI-скрипт для сворачивания/разворачивания
+    if (typeof setUIMap === 'function') {
+        setUIMap(myMap);
+    }
+
     myMap.events.add('click', function(e) {
         if (!roundActive || guessSubmitted || roundFinished) return;
         const coords = e.get('coords');
@@ -80,6 +85,11 @@ ymaps.ready(function() {
             });
         }
         document.getElementById('guessBtn').disabled = false;
+
+        // Скрываем подсказку
+        if (typeof hideMapHint === 'function') {
+            hideMapHint();
+        }
     });
 });
 
@@ -184,27 +194,9 @@ socket.on('start_round', function(data) {
     document.getElementById('finishModal').classList.remove('visible');
 
     loadPanorama(data.search_lat, data.search_lon, data.city);
-    setupReturnToStart();
 
     console.log(`[DUEL] Round ${currentRound} started (newRound=${isNewRound})`);
 });
-
-// ===========================
-// Кнопка возврата
-// ===========================
-function setupReturnToStart() {
-    const oldBtn = document.getElementById('returnToStart');
-    if (oldBtn) oldBtn.remove();
-
-    const btn = document.createElement('button');
-    btn.id = 'returnToStart';
-    btn.style.cssText = 'position:fixed;bottom:100px;left:20px;z-index:250;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);cursor:pointer;font-size:12px;font-weight:600;';
-    btn.innerHTML = '↺ Вернуться к началу';
-    btn.addEventListener('click', () => {
-        if (startCoords) loadPanorama(startCoords[0], startCoords[1], 'Москва');
-    });
-    document.body.appendChild(btn);
-}
 
 // ===========================
 // Сокет-события
@@ -239,9 +231,6 @@ socket.on('round_result', function(data) {
     document.getElementById('myScore').textContent = myTotalScore;
     document.getElementById('opponentScore').textContent = opponentTotalScore;
 
-    const returnBtn = document.getElementById('returnToStart');
-    if (returnBtn) returnBtn.remove();
-
     showRoundResults(data);
 });
 
@@ -255,8 +244,6 @@ socket.on('player_ready_next', function(data) {
 socket.on('duel_finished', function(data) {
     stopTimer();
     destroyPanoramaPlayer();
-    const returnBtn = document.getElementById('returnToStart');
-    if (returnBtn) returnBtn.remove();
     showDuelFinished(data);
 });
 

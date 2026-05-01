@@ -38,6 +38,44 @@
             z-index: 0;
         }
 
+        /* Кнопка возврата к началу */
+        .return-to-start {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            z-index: 250;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-right: none;
+            border-bottom: none;
+            border-radius: 12px 0 0 0;
+            color: var(--accent);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.3);
+        }
+
+        .return-to-start:hover {
+            background: var(--surface);
+            border-color: var(--accent);
+            color: #ffb930;
+            padding-right: 28px;
+        }
+
+        .return-to-start svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
         .topbar {
             position: fixed;
             top: 0; left: 0; right: 0;
@@ -62,7 +100,7 @@
 
         .logo-text span { color: var(--accent2); }
 
-        .round-pill {
+        .pill {
             background: rgba(224,90,43,0.15);
             border: 1px solid rgba(224,90,43,0.3);
             border-radius: 20px;
@@ -84,18 +122,20 @@
         .timer-pill.warn { background: var(--accent); color: #0d1117; }
         .timer-pill.danger { background: var(--red); color: #fff; }
 
-        .scores-pill {
+        .score-pill {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 20px;
             padding: 4px 16px;
-            font-size: 13px;
-            font-weight: 600;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            letter-spacing: 2px;
+            color: var(--text);
         }
 
         .opponent-status {
             position: fixed;
-            top: 60px;
+            top: 70px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 101;
@@ -116,61 +156,169 @@
         .map-float {
             position: fixed;
             top: 100px;
-            right: 20px;
+            right: 24px;
             z-index: 200;
-            width: 350px;
-            height: 280px;
+            width: 320px;
+            height: 240px;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 16px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 48px rgba(0,0,0,0.65);
+            box-shadow: 0 20px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03) inset;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .map-float:hover {
+            width: 500px;
+            height: 400px;
+            box-shadow: 0 28px 60px rgba(224, 90, 43, 0.15), 0 0 0 1px rgba(224, 90, 43, 0.2) inset;
+        }
+
+        .map-float.collapsed {
+            width: 280px;
+            height: 52px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .map-float.collapsed:hover {
+            width: 280px;
+            height: 52px;
+        }
+
+        .map-float.collapsed #map,
+        .map-float.collapsed .map-float-footer {
+            display: none;
+        }
+
+        .map-float.collapsed .map-float-hint {
+            display: none;
+        }
+
+        .map-float.expanded {
+            width: 720px;
+            height: 520px;
+            box-shadow: 0 28px 60px rgba(0,0,0,0.75), 0 0 0 1px rgba(224,90,43,0.12) inset;
         }
 
         .map-float-header {
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: space-between;
             padding: 10px 14px;
             background: var(--surface2);
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
+            user-select: none;
         }
+
+        .map-float.collapsed .map-float-header {
+            border-bottom: none;
+        }
+
+        .map-float-left { display: flex; align-items: center; gap: 10px; }
 
         .map-dot {
             width: 7px; height: 7px;
             border-radius: 50%;
             background: var(--accent2);
+            opacity: 0.7;
+            transition: opacity 0.3s;
         }
+
+        .map-float.collapsed .map-dot { opacity: 1; }
 
         .map-float-title {
             font-size: 11px;
-            letter-spacing: 2px;
+            letter-spacing: 2.5px;
             text-transform: uppercase;
             color: var(--muted);
             font-weight: 600;
         }
 
-        #map {
+        .map-float-hint {
+            font-size: 10px;
+            color: rgba(139,148,158,0.45);
+            transition: opacity 0.4s;
+        }
+
+        .map-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .map-collapse-btn,
+        .map-expand-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .map-collapse-btn:hover,
+        .map-expand-btn:hover {
+            border-color: var(--accent2);
+            color: var(--accent2);
+            background: rgba(224,90,43,0.07);
+        }
+
+        .map-float.collapsed .map-collapse-btn {
+            display: none;
+        }
+
+        .map-container {
             flex: 1;
             min-height: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
             cursor: crosshair;
+        }
+
+        .map-overlay-curtain {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: var(--surface2);
+            pointer-events: auto;
+            z-index: 3;
+            border-top: 1px solid var(--border);
         }
 
         .map-float-footer {
             padding: 0 14px;
-            height: 60px;
+            height: 64px;
             background: var(--surface2);
             border-top: none;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 8px;
+            position: relative;
+            z-index: 4;
+            margin-top: -12px;
         }
 
         .btn-guess {
+            flex: 0 1 auto;
+            min-width: 200px;
             padding: 12px 24px;
             border: none;
             border-radius: 8px;
@@ -181,15 +329,15 @@
             text-transform: uppercase;
             cursor: pointer;
             transition: all 0.2s ease;
+            transform: translateY(-16px);
             background: var(--accent2);
             color: #fff;
-            transform: translateY(-12px);
         }
 
         .btn-guess:hover:not(:disabled) {
             background: #ff6b3d;
-            transform: translateY(-14px);
-            box-shadow: 0 4px 12px rgba(224,90,43,0.4);
+            transform: translateY(-17px);
+            box-shadow: 0 4px 12px rgba(224,90,43,0.3);
         }
 
         .btn-guess:disabled {
@@ -197,13 +345,15 @@
             color: var(--muted);
             border: 1px solid var(--border);
             cursor: not-allowed;
+            transform: translateY(-16px);
         }
 
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.65);
+            background: rgba(0,0,0,0.62);
             backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -220,22 +370,22 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 20px;
-            padding: 28px;
+            padding: 36px 32px;
             max-width: 600px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
-            transform: translateY(20px);
-            transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+            transform: translateY(20px) scale(0.97);
+            transition: transform 0.32s cubic-bezier(.4,0,.2,1);
         }
 
-        .modal-overlay.visible .modal-card { transform: translateY(0); }
+        .modal-overlay.visible .modal-card { transform: translateY(0) scale(1); }
 
         .modal-title {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 32px;
-            letter-spacing: 3px;
-            margin-bottom: 16px;
+            font-size: 30px;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
             text-align: center;
         }
 
@@ -293,6 +443,7 @@
 
         .btn-next:hover:not(:disabled) {
             background: #ff6b3d;
+            box-shadow: 0 4px 12px rgba(224,90,43,0.3);
         }
 
         .btn-next:disabled {
@@ -308,6 +459,7 @@
 
         .btn-finish:hover {
             background: #ffb930;
+            box-shadow: 0 4px 12px rgba(240,165,0,0.3);
         }
 
         .btn-menu {
@@ -321,51 +473,35 @@
             color: var(--accent);
         }
 
-        .return-to-start {
-            position: fixed;
-            bottom: 0;
-            right: 0;
-            z-index: 250;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-right: none;
-            border-bottom: none;
-            border-radius: 12px 0 0 0;
-            color: var(--accent);
-            font-family: 'Montserrat', sans-serif;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 -2px 12px rgba(0,0,0,0.3);
-        }
-
-        .return-to-start:hover {
-            background: var(--surface);
-            border-color: var(--accent);
-            color: #ffb930;
-            padding-right: 28px;
-        }
-
-        .return-to-start svg {
-            width: 16px;
-            height: 16px;
-            flex-shrink: 0;
-        }
-
         @media (max-width: 600px) {
             .map-float {
                 top: 100px;
-                right: 10px;
-                left: 10px;
+                right: 12px;
+                left: 12px;
                 width: auto;
-                height: 240px;
+                height: 220px;
             }
+
+            .map-float:hover {
+                width: auto;
+                height: 300px;
+            }
+
+            .map-float.collapsed {
+                width: auto;
+                height: 52px;
+            }
+
+            .map-float.expanded {
+                top: 100px;
+                right: 12px;
+                left: 12px;
+                width: auto;
+                height: 50vh;
+            }
+
+            .topbar { padding: 8px 14px; }
+            .logo-text { font-size: 18px; }
         }
     </style>
 </head>
@@ -373,27 +509,52 @@
 
     <div id="pano"></div>
 
+    <!-- Кнопка возврата к началу -->
+    <button class="return-to-start" id="goToStart" title="Вернуться к начальной точке">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="8"/>
+            <path d="M12 8v8M8 12l4-4 4 4"/>
+        </svg>
+        Вернуться к началу
+    </button>
+
     <div class="topbar">
         <div class="topbar-left">
             <div class="logo-text">Мос<span>Guessr</span></div>
-            <div class="round-pill" id="roundPill">Раунд 1/5</div>
+            <div class="pill" id="roundPill">Раунд 1/5</div>
             <div class="timer-pill safe" id="timerPill">60</div>
         </div>
-        <div>
-            <span class="scores-pill">🏆 <span id="myScore">0</span> | 🏆 <span id="opponentScore">0</span></span>
-        </div>
+        <div class="score-pill">🏆 <span id="myScore">0</span> | 🏆 <span id="opponentScore">0</span></div>
     </div>
 
     <div class="opponent-status thinking" id="opponentStatus">Соперник думает...</div>
 
-    <div class="map-float">
+    <div class="map-float" id="mapFloat">
         <div class="map-float-header">
-            <div class="map-dot"></div>
-            <div class="map-float-title">Выберите место</div>
+            <div class="map-float-left">
+                <div class="map-dot"></div>
+                <div class="map-float-title">Карта Москвы</div>
+            </div>
+            <div class="map-float-hint" id="mapHint">Кликните, чтобы выбрать место</div>
+            <div class="map-controls">
+                <button class="map-collapse-btn" id="collapseBtn" title="Свернуть">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M5 12h14"/>
+                    </svg>
+                </button>
+                <button class="map-expand-btn" id="expandBtn" title="Развернуть">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-        <div id="map"></div>
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-overlay-curtain"></div>
+        </div>
         <div class="map-float-footer">
-            <button class="btn-guess" id="guessBtn" disabled>🎯 Угадать</button>
+            <button class="btn-guess" id="guessBtn" disabled>🎯 Угадать место</button>
         </div>
     </div>
 
@@ -419,6 +580,134 @@
 
     <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_api_key }}&lang=ru_RU"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <!-- Инлайн-скрипт ТОЛЬКО для UI управления картой (сворачивание/разворачивание) -->
+    <script>
+        // Переменная для хранения ссылки на карту (будет заполнена из duel_match.js)
+        let uiMap = null;
+        let mapExpanded = false;
+        let mapCollapsed = false;
+        let hoverTimeout = null;
+
+        const mapFloat  = document.getElementById('mapFloat');
+        const expandBtn = document.getElementById('expandBtn');
+        const collapseBtn = document.getElementById('collapseBtn');
+
+        // Функция для установки ссылки на карту (вызывается из duel_match.js)
+        function setUIMap(mapInstance) {
+            uiMap = mapInstance;
+            // Начальная подгонка размера
+            setTimeout(() => {
+                updateMapSize();
+            }, 100);
+        }
+
+        // Отслеживаем наведение мыши для hover-эффекта
+        mapFloat.addEventListener('mouseenter', () => {
+            if (!mapCollapsed) {
+                hoverTimeout = setTimeout(() => {
+                    updateMapSize();
+                }, 350); // Чуть больше, чем transition duration (0.3s)
+            }
+        });
+
+        mapFloat.addEventListener('mouseleave', () => {
+            if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = null;
+            }
+            if (!mapCollapsed && !mapExpanded) {
+                setTimeout(() => {
+                    updateMapSize();
+                }, 350);
+            }
+        });
+
+        // Обработчики кнопок управления картой
+        expandBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (mapCollapsed) {
+                mapCollapsed = false;
+                mapFloat.classList.remove('collapsed');
+                updateCollapseIcon();
+            }
+            mapExpanded = !mapExpanded;
+            mapFloat.classList.toggle('expanded', mapExpanded);
+            updateExpandIcon();
+            setTimeout(() => {
+                updateMapSize();
+            }, 370);
+        });
+
+        collapseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            mapCollapsed = !mapCollapsed;
+            mapFloat.classList.toggle('collapsed', mapCollapsed);
+            if (mapCollapsed) {
+                mapExpanded = false;
+                mapFloat.classList.remove('expanded');
+                updateExpandIcon();
+            }
+            updateCollapseIcon();
+            if (!mapCollapsed) {
+                setTimeout(() => {
+                    updateMapSize();
+                }, 370);
+            }
+        });
+
+        function updateExpandIcon() {
+            expandBtn.innerHTML = mapExpanded
+                ? `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                       <path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/>
+                   </svg>`
+                : `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                       <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                   </svg>`;
+        }
+
+        function updateCollapseIcon() {
+            collapseBtn.innerHTML = mapCollapsed
+                ? `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                       <path d="M12 5v14M5 12h14"/>
+                   </svg>`
+                : `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                       <path d="M5 12h14"/>
+                   </svg>`;
+            collapseBtn.title = mapCollapsed ? 'Развернуть' : 'Свернуть';
+        }
+
+        function updateMapSize() {
+            if (uiMap && !mapCollapsed) {
+                // Небольшая задержка для завершения CSS-перехода
+                setTimeout(() => {
+                    if (uiMap && uiMap.container) {
+                        uiMap.container.fitToViewport();
+                    }
+                }, 50);
+            }
+        }
+
+        // Наблюдатель за изменением размера контейнера карты
+        const resizeObserver = new ResizeObserver(() => {
+            updateMapSize();
+        });
+        resizeObserver.observe(mapFloat);
+
+        // Кнопка возврата к начальной точке
+        document.getElementById('goToStart').addEventListener('click', () => {
+            if (typeof loadPanorama === 'function' && typeof startCoords !== 'undefined' && startCoords) {
+                loadPanorama(startCoords[0], startCoords[1], 'Москва');
+            }
+        });
+
+        // Скрываем подсказку при клике на карту (будет вызвано из duel_match.js)
+        function hideMapHint() {
+            document.getElementById('mapHint').style.opacity = '0';
+        }
+    </script>
+
+    <!-- Основной скрипт дуэли -->
     <script src="{{ url_for('static', filename='js/duel_match.js') }}"></script>
 </body>
 </html>
