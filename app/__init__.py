@@ -51,5 +51,4 @@ def create_app(config_class=Config):
             content = f.read()
 
         return Response(content, mimetype='application/javascript')
-    
     return app
