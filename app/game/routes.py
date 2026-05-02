@@ -6,6 +6,7 @@ from app.game import bp
 from app.extensions import db
 from app.models.location import Location
 from app.models.game import Game
+from app.models.user import User
 from app.utils.geo import get_random_city, calculate_score, haversine
 from app.utils.helpers import login_required, get_current_user
 
@@ -157,13 +158,40 @@ def reset_game():
     session.pop('current_location', None)
     return redirect(url_for('game.game'))
 
+
 @bp.route('/leaderboard')
 def leaderboard():
     """HTML-страница с таблицей рекордов."""
-    db_sess = db.session
-    # Получаем 20 лучших игр по убыванию очков
-    games = db_sess.query(Game).order_by(Game.score.desc()).limit(20).all()
-    return render_template('leaderboard.html', games=games)
+    from sqlalchemy import func
+
+    # Группируем по пользователю, суммируем очки
+    results = (
+        db.session.query(
+            User.name,
+            func.sum(Game.score).label('total_score'),
+            func.max(Game.score).label('best_score'),
+            func.count(Game.id).label('games_played'),
+            func.max(Game.played_at).label('last_played')
+        )
+        .join(User, Game.user_id == User.id, isouter=True)
+        .group_by(User.id, User.name)
+        .order_by(func.sum(Game.score).desc())
+        .limit(20)
+        .all()
+    )
+
+    # Преобразуем в удобный формат для шаблона
+    leaderboard = []
+    for row in results:
+        leaderboard.append({
+            'name': row.name or 'Аноним',
+            'total_score': int(row.total_score),
+            'best_score': int(row.best_score),
+            'games_played': row.games_played,
+            'last_played': row.last_played
+        })
+
+    return render_template('leaderboard.html', leaderboard=leaderboard)
 
 @bp.route('/duel')
 @login_required

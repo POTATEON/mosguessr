@@ -156,6 +156,17 @@
             margin-bottom: 12px;
         }
 
+        .podium-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .podium-score {
             font-family: 'Bebas Neue', sans-serif;
             font-size: 36px;
@@ -167,17 +178,10 @@
         .podium-item.silver .podium-score { color: #c0c0c0; }
         .podium-item.bronze .podium-score { color: #cd7f32; }
 
-        .podium-city {
-            font-size: 12px;
+        .podium-games {
+            font-size: 11px;
             color: var(--muted);
-            margin-top: 6px;
-        }
-
-        .podium-date {
-            font-size: 10px;
-            color: rgba(139,148,158,0.5);
-            margin-top: 4px;
-            letter-spacing: 1px;
+            margin-top: 8px;
         }
 
         .table-card {
@@ -189,24 +193,28 @@
 
         .table-header-row {
             display: grid;
-            grid-template-columns: 48px 1fr 1fr 100px 90px;
+            grid-template-columns: 48px 120px 1fr 80px;
             gap: 0;
             background: var(--surface2);
             border-bottom: 1px solid var(--border);
         }
 
         .th {
-            padding: 14px 16px;
+            padding: 14px 12px;
             font-size: 10px;
             letter-spacing: 2px;
             text-transform: uppercase;
             color: var(--muted);
             font-weight: 600;
+            text-align: center;
         }
+
+        .th:first-child { text-align: center; }
+        .th:nth-child(2) { text-align: left; }
 
         .table-row {
             display: grid;
-            grid-template-columns: 48px 1fr 1fr 100px 90px;
+            grid-template-columns: 48px 120px 1fr 80px;
             border-bottom: 1px solid var(--border);
             transition: background 0.15s;
             align-items: center;
@@ -216,7 +224,7 @@
         .table-row:hover { background: rgba(255,255,255,0.02); }
 
         .td {
-            padding: 14px 16px;
+            padding: 14px 12px;
             font-size: 13px;
         }
 
@@ -226,19 +234,28 @@
             text-align: center;
         }
 
+        .td-name {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .td-score {
             font-family: 'Bebas Neue', sans-serif;
             letter-spacing: 2px;
             font-size: 20px;
+            text-align: center;
         }
 
         .score-high { color: var(--green); }
         .score-med { color: var(--orange); }
         .score-low { color: var(--red); }
 
-        .td-date {
-            font-size: 11px;
+        .td-games {
+            font-size: 12px;
             color: var(--muted);
+            text-align: center;
         }
 
         .empty {
@@ -254,9 +271,8 @@
             .podium { grid-template-columns: 1fr; }
             .table-header-row,
             .table-row {
-                grid-template-columns: 40px 1fr 80px 80px;
+                grid-template-columns: 36px 100px 1fr 70px;
             }
-            .th:nth-child(3), .td:nth-child(3) { display: none; }
         }
     </style>
 </head>
@@ -279,36 +295,34 @@
             </div>
         </div>
 
-        {% if games %}
+        {% if leaderboard %}
         <div class="podium">
-            {% for game in games[:3] %}
+            {% for player in leaderboard[:3] %}
             <div class="podium-item {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% else %}bronze{% endif %}">
                 <div class="podium-medal">{% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% else %}🥉{% endif %}</div>
-                <div class="podium-score">{{ game.score }}</div>
-                <div class="podium-city">{{ game.actual_city or 'Москва' }}</div>
-                <div class="podium-date">{{ game.played_at.strftime('%Y-%m-%d') if game.played_at else '' }}</div>
+                <div class="podium-name" title="{{ player.name }}">{{ player.name }}</div>
+                <div class="podium-score">{{ player.total_score }}</div>
+                <div class="podium-games">Игр: {{ player.games_played }}</div>
             </div>
             {% endfor %}
         </div>
 
-        {% if games|length > 3 %}
+        {% if leaderboard|length > 3 %}
         <div class="table-card">
             <div class="table-header-row">
-                <div class="th" style="text-align:center">#</div>
-                <div class="th">Игрок</div>
-                <div class="th">Город</div>
+                <div class="th">#</div>
+                <div class="th" style="text-align:left">Игрок</div>
                 <div class="th">Очки</div>
-                <div class="th">Дата</div>
+                <div class="th">Игр</div>
             </div>
-            {% for game in games[3:] %}
+            {% for player in leaderboard[3:] %}
             <div class="table-row">
                 <div class="td td-rank">{{ loop.index + 3 }}</div>
-                <div class="td">{{ game.user.name if game.user else 'Аноним' }}</div>
-                <div class="td">{{ game.actual_city or 'Москва' }}</div>
-                <div class="td td-score {% if game.score >= 4000 %}score-high{% elif game.score >= 2500 %}score-med{% else %}score-low{% endif %}">
-                    {{ game.score }}
+                <div class="td td-name" title="{{ player.name }}">{{ player.name }}</div>
+                <div class="td td-score {% if player.total_score >= 8000 %}score-high{% elif player.total_score >= 4000 %}score-med{% else %}score-low{% endif %}">
+                    {{ player.total_score }}
                 </div>
-                <div class="td td-date">{{ game.played_at.strftime('%Y-%m-%d') if game.played_at else '—' }}</div>
+                <div class="td td-games">{{ player.games_played }}</div>
             </div>
             {% endfor %}
         </div>
