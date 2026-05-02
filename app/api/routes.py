@@ -39,3 +39,20 @@ def user_stats(user_id):
         'avg_score': round(avg_score, 2),
         'best_score': best_game.score if best_game else 0
     })
+
+
+@bp.route('/user/<int:user_id>/avatar')
+def get_user_avatar(user_id):
+    """API для получения аватарки пользователя"""
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    avatar_url = user.get_avatar_url(200)
+
+    return jsonify({
+        'user_id': user.id,
+        'name': user.name,
+        'avatar_url': avatar_url,
+        'avatar_type': user.avatar_type
+    })

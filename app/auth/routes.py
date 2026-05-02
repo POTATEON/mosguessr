@@ -16,6 +16,7 @@ def register():
 
         user = User(name=form.name.data, email=form.email.data)
         user.set_password(form.password.data)
+        user.avatar_type = 'svg'  # Устанавливаем SVG аватар по умолчанию
         db.session.add(user)
         db.session.commit()
 

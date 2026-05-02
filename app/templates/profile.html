@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль — МосGuessr</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='tab_icons/main.ico') }}" type="image/x-icon">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #1c2333;
+            --border: rgba(255,255,255,0.08);
+            --accent: #f0a500;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --red: #f85149;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 24px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 24px;
+        }
+
+        .card-header h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            letter-spacing: 2px;
+            color: var(--accent);
+        }
+
+        .card-body {
+            padding: 32px 24px;
+            text-align: center;
+        }
+
+        .avatar-section {
+            margin-bottom: 24px;
+        }
+
+        .avatar-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            border: 3px solid var(--accent);
+            overflow: hidden;
+            background: var(--surface2);
+        }
+
+        .avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface2);
+            color: var(--accent);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 60px;
+        }
+
+        .user-name {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .user-email {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 24px;
+        }
+
+        .upload-form {
+            margin-bottom: 16px;
+        }
+
+        .file-input-wrapper {
+            margin-bottom: 12px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px 16px;
+            background: var(--surface2);
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .file-input-label:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .file-input-label input[type="file"] {
+            display: none;
+        }
+
+        .file-name {
+            font-size: 12px;
+            color: var(--accent);
+            margin-top: 8px;
+            display: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #0d1117;
+        }
+
+        .btn-primary:hover {
+            background: #ffb930;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(240,165,0,0.3);
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid var(--red);
+            margin-top: 8px;
+        }
+
+        .btn-danger:hover {
+            background: rgba(248,81,73,0.1);
+            transform: translateY(-2px);
+        }
+
+        .stats-section {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .stats-section h3 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 2px;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 14px;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--muted);
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+
+        .flash-message {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .flash-success {
+            background: rgba(63,185,80,0.15);
+            border: 1px solid rgba(63,185,80,0.3);
+            color: #3fb950;
+        }
+
+        .flash-error {
+            background: rgba(248,81,73,0.15);
+            border: 1px solid rgba(248,81,73,0.3);
+            color: #f85149;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="back-link">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            На главную
+        </a>
+
+        <!-- Flash сообщения -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Мой профиль</h2>
+            </div>
+            <div class="card-body">
+                <!-- Аватар -->
+                <div class="avatar-section">
+                    <div class="avatar-preview" id="avatarPreview">
+                        {% if user.avatar_type == 'upload' and user.avatar_url %}
+                            <img src="{{ user.avatar_url }}" alt="{{ user.name }}">
+                        {% else %}
+                            <div class="avatar-placeholder">
+                                {{ user.name[:1].upper() if user.name else '?' }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="user-name">{{ user.name or 'Игрок' }}</div>
+                    {% if user.email %}
+                        <div class="user-email">{{ user.email }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Форма загрузки -->
+                <div class="upload-form">
+                    <form method="POST" action="{{ url_for('game.upload_avatar') }}" enctype="multipart/form-data" id="avatarForm">
+                        <div class="file-input-wrapper">
+                            <label class="file-input-label" for="avatarInput">
+                                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom: 4px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                                </svg>
+                                <br>Выберите изображение
+                                <input type="file" id="avatarInput" name="avatar" accept="image/png, image/jpeg, image/gif, image/webp">
+                            </label>
+                            <div class="file-name" id="fileName"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Загрузить</button>
+                    </form>
+
+                    {% if user.avatar_type == 'upload' %}
+                        <form method="POST" action="{{ url_for('game.remove_avatar') }}" style="margin-top: 8px;">
+                            <button type="submit" class="btn btn-danger">Удалить фото</button>
+                        </form>
+                    {% endif %}
+                </div>
+
+                <!-- Статистика -->
+                <div class="stats-section">
+                    <h3>Статистика</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Сыграно игр</span>
+                        <span class="stat-value">{{ user.games.count() }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Дата регистрации</span>
+                        <span class="stat-value">{{ user.created_date.strftime('%d.%m.%Y') }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Тип аватара</span>
+                        <span class="stat-value">{{ 'Загруженное фото' if user.avatar_type == 'upload' else 'Стандартный' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Превью загружаемого файла
+        document.getElementById('avatarInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const fileName = document.getElementById('fileName');
+            const preview = document.getElementById('avatarPreview');
+
+            if (file) {
+                // Проверка размера (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Файл слишком большой! Максимум 5MB');
+                    this.value = '';
+                    fileName.style.display = 'none';
+                    return;
+                }
+
+                // Показываем имя файла
+                fileName.textContent = file.name;
+                fileName.style.display = 'block';
+
+                // Превью
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

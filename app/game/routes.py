@@ -1,14 +1,20 @@
 import traceback
-import sys
-import os
-from flask import render_template, session, redirect, url_for, request, jsonify, current_app
-from app.game import bp
+
+from flask import render_template, request, jsonify, redirect, url_for
+from flask import session, current_app
+from flask import render_template, request, jsonify, redirect, url_for, flash
+from app.utils.avatar import generate_avatar_svg
+from app.utils.helpers import login_required, get_current_user
+from app.models.user import User
+from app.auth.forms import AvatarForm
 from app.extensions import db
-from app.models.location import Location
+from app.game import bp
 from app.models.game import Game
+from app.models.location import Location
 from app.models.user import User
 from app.utils.geo import get_random_city, calculate_score, haversine
 from app.utils.helpers import login_required, get_current_user
+
 
 @bp.route('/game')
 @login_required
@@ -246,3 +252,61 @@ def duel_create_match():
     return render_template('duel_create.html',
                            yandex_api_key=current_app.config['YANDEX_API_KEY'],
                            user=user)
+
+
+@bp.route('/profile')
+@login_required
+def profile():
+    """Страница профиля пользователя"""
+    user = get_current_user()
+    form = AvatarForm()
+    return render_template('profile.html', user=user, form=form)
+
+
+@bp.route('/upload_avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    """Загрузить новый аватар"""
+    user = get_current_user()
+
+    if 'avatar' not in request.files:
+        flash('Файл не выбран', 'error')
+        return redirect(url_for('game.profile'))
+
+    file = request.files['avatar']
+    if file.filename == '':
+        flash('Файл не выбран', 'error')
+        return redirect(url_for('game.profile'))
+
+    # Исправлено: убираем .filestream, используем file напрямую
+    if user.set_avatar(file):
+        db.session.commit()
+        flash('Аватар успешно обновлен!', 'success')
+    else:
+        flash('Ошибка при загрузке аватара', 'error')
+
+    return redirect(url_for('game.profile'))
+
+@bp.route('/remove_avatar', methods=['POST'])
+@login_required
+def remove_avatar():
+    """Удалить загруженный аватар и вернуть SVG"""
+    user = get_current_user()
+    user.set_avatar_to_svg()
+    db.session.commit()
+    flash('Фото удалено, используется аватар по умолчанию', 'success')
+    return redirect(url_for('game.profile'))
+
+
+@bp.route('/avatar/<int:user_id>')
+def user_avatar(user_id):
+    """Получить аватар пользователя (рендерит SVG или редиректит на фото)"""
+    user = db.session.get(User, user_id)
+    if not user:
+        return "User not found", 404
+
+    if user.avatar_type == 'upload' and user.avatar_url:
+        return redirect(user.avatar_url)
+    else:
+        svg = user.get_avatar_svg(200)
+        return Response(svg, mimetype='image/svg+xml')

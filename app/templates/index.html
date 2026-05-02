@@ -248,9 +248,235 @@
             transform: translateY(-2px);
         }
 
-        .user-section {
-            margin-top: 20px;
+        /* === Стили для профиля === */
+        .profile-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .profile-trigger {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid var(--border);
+            background: var(--surface);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .profile-trigger:hover {
+            border-color: var(--accent);
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(240,165,0,0.2);
+        }
+
+        .profile-trigger img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-trigger .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface2);
+            color: var(--accent);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+        }
+
+        /* Выпадающее окно профиля */
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: 320px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+            animation: slideDown 0.2s ease;
+        }
+
+        .profile-dropdown.active {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-dropdown-header {
+            padding: 24px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
             text-align: center;
+        }
+
+        .profile-dropdown-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 12px;
+            border: 3px solid var(--accent);
+            overflow: hidden;
+            background: var(--surface);
+        }
+
+        .profile-dropdown-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-dropdown-avatar .avatar-placeholder-large {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface2);
+            color: var(--accent);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 32px;
+        }
+
+        .profile-dropdown-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .profile-dropdown-email {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .profile-dropdown-stats {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .profile-stat {
+            flex: 1;
+            padding: 16px 12px;
+            text-align: center;
+        }
+
+        .profile-stat:not(:last-child) {
+            border-right: 1px solid var(--border);
+        }
+
+        .profile-stat-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+
+        .profile-stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .profile-dropdown-actions {
+            padding: 12px;
+        }
+
+        .profile-action {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .profile-action:hover {
+            background: var(--surface2);
+        }
+
+        .profile-action.danger {
+            color: var(--red);
+        }
+
+        .profile-action.danger:hover {
+            background: rgba(248,81,73,0.1);
+        }
+
+        .profile-dropdown-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 8px 0;
+        }
+
+        /* Auth buttons в dropdown */
+        .auth-buttons {
+            padding: 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .auth-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .auth-btn.login {
+            background: var(--accent);
+            color: #0d1117;
+        }
+
+        .auth-btn.login:hover {
+            background: #ffb930;
+        }
+
+        .auth-btn.register {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .auth-btn.register:hover {
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         .map-icon {
@@ -266,6 +492,16 @@
         @media (max-width: 480px) {
             .btn-group { flex-direction: column; }
             .btn { min-width: auto; }
+
+            .profile-container {
+                top: 10px;
+                right: 10px;
+            }
+
+            .profile-dropdown {
+                width: calc(100vw - 40px);
+                right: -10px;
+            }
         }
     </style>
 </head>
@@ -274,6 +510,105 @@
         <path d="M50 10 C50 10 20 35 20 55 C20 72 34 82 50 90 C66 82 80 72 80 55 C80 35 50 10 50 10Z" fill="white"/>
         <circle cx="50" cy="53" r="10" fill="black"/>
     </svg>
+
+    <!-- Иконка профиля -->
+    <div class="profile-container">
+        <div class="profile-trigger" id="profileTrigger" onclick="toggleProfile()">
+            {% if user %}
+                {% if user.avatar_type == 'upload' and user.avatar_url %}
+                    <img src="{{ user.avatar_url }}" alt="{{ user.name }}">
+                {% else %}
+                    <div class="avatar-placeholder">{{ user.name[:1].upper() if user.name else '?' }}</div>
+                {% endif %}
+            {% else %}
+                <div class="avatar-placeholder" style="background: var(--surface2);">
+                    <svg width="24" height="24" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Выпадающее окно -->
+        <div class="profile-dropdown" id="profileDropdown">
+            {% if user %}
+                <!-- Заголовок с инфой -->
+                <div class="profile-dropdown-header">
+                    <div class="profile-dropdown-avatar">
+                        {% if user.avatar_type == 'upload' and user.avatar_url %}
+                            <img src="{{ user.avatar_url }}" alt="{{ user.name }}">
+                        {% else %}
+                            <div class="avatar-placeholder-large">
+                                {{ user.name[:1].upper() if user.name else '?' }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="profile-dropdown-name">{{ user.name or 'Игрок' }}</div>
+                    {% if user.email %}
+                        <div class="profile-dropdown-email">{{ user.email }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Статистика -->
+                <div class="profile-dropdown-stats">
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">{{ user.games.count() }}</div>
+                        <div class="profile-stat-label">Игр</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">{{ user.created_date.strftime('%d.%m') }}</div>
+                        <div class="profile-stat-label">С нами с</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">🏆</div>
+                        <div class="profile-stat-label">Ранг</div>
+                    </div>
+                </div>
+
+                <!-- Действия -->
+                <div class="profile-dropdown-actions">
+                    <a href="{{ url_for('game.profile') }}" class="profile-action">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                        Редактировать профиль
+                    </a>
+                    <a href="{{ url_for('game.leaderboard') }}" class="profile-action">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 6 9 6 9zM18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 18 9 18 9zM4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+                        </svg>
+                        Таблица лидеров
+                    </a>
+                    <div class="profile-dropdown-divider"></div>
+                    <a href="{{ url_for('auth.logout') }}" class="profile-action danger">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                        </svg>
+                        Выйти
+                    </a>
+                </div>
+            {% else %}
+                <!-- Для неавторизованных -->
+                <div class="profile-dropdown-header">
+                    <div class="profile-dropdown-avatar">
+                        <div class="avatar-placeholder-large">
+                            <svg width="40" height="40" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="profile-dropdown-name">Гость</div>
+                    <div class="profile-dropdown-email">Войдите, чтобы сохранять прогресс</div>
+                </div>
+                <div class="auth-buttons">
+                    <a href="{{ url_for('auth.login') }}" class="auth-btn login">Войти</a>
+                    <a href="{{ url_for('auth.register') }}" class="auth-btn register">Регистрация</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 
     <div class="container">
         <div class="logo">
@@ -317,18 +652,31 @@
                 Рекорды
             </a>
         </div>
-
-        <div class="user-section">
-            {% if user %}
-                <p>Привет, {{ user.name }}!</p>
-                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary" style="display: inline-block; margin-top: 10px;">Выйти</a>
-            {% else %}
-                <p>
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">Войти</a>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">Регистрация</a>
-                </p>
-            {% endif %}
-        </div>
     </div>
+
+    <script>
+        function toggleProfile() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        // Закрывать dropdown при клике вне его
+        document.addEventListener('click', function(event) {
+            const container = document.querySelector('.profile-container');
+            const dropdown = document.getElementById('profileDropdown');
+
+            if (!container.contains(event.target) && dropdown.classList.contains('active')) {
+                dropdown.classList.remove('active');
+            }
+        });
+
+        // Закрывать по Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const dropdown = document.getElementById('profileDropdown');
+                dropdown.classList.remove('active');
+            }
+        });
+    </script>
 </body>
 </html>

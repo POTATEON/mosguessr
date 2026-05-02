@@ -23,8 +23,11 @@ def create_creator_duel(player1, player2):
     for player in [player1, player2]:
         opponent = player2 if player == player1 else player1
         socketio.emit('duel_found', {
-            'duel_id': duel.id, 'opponent_name': opponent['name'],
-            'my_user_id': player['user_id'], 'mode': 'creator'
+            'duel_id': duel.id,
+            'opponent_name': opponent['name'],
+            'opponent_id': opponent['user_id'],  # 👈 ДОБАВЛЕНО
+            'my_user_id': player['user_id'],
+            'mode': 'creator'
         }, room=player['sid'])
 
 
