@@ -2,6 +2,7 @@
 import time
 import datetime
 from app.models.location import Location
+from app.models.user import User
 from flask import session, request
 from flask_socketio import emit
 from app.extensions import socketio, db
@@ -43,6 +44,12 @@ def handle_next_round(data=None):
 
 @socketio.on('join_duel_from_queue')
 def handle_join_duel_from_queue(data=None):
+    """
+    Переподключение игрока к дуэли после редиректа.
+    
+    ★ ИСПРАВЛЕНИЕ: Теперь отправляем duel_found с opponent_id и opponent_name
+    при переподключении, чтобы инлайн-скрипт VS-экрана мог загрузить аватарку.
+    """
     duel_id = data.get('duel_id')
     user_id = session.get('user_id')
 
@@ -53,6 +60,18 @@ def handle_join_duel_from_queue(data=None):
     duel = db.session.get(Duel, duel_id)
     if not duel or duel.status != 'in_progress':
         return
+
+    # ★ НОВОЕ: Отправляем данные о сопернике при переподключении
+    opponent_id = duel.player2_id if user_id == duel.player1_id else duel.player1_id
+    opponent = db.session.get(User, opponent_id)
+    opponent_name = opponent.name if opponent else 'Соперник'
+    
+    send_to_player(duel_id, user_id, 'duel_found', {
+        'duel_id': duel_id,
+        'opponent_name': opponent_name,
+        'opponent_id': opponent_id,
+        'my_user_id': user_id
+    })
 
     # Если оба подключены
     if len(duel_rooms[duel_id]) == 2:
@@ -74,6 +93,14 @@ def handle_join_duel_from_queue(data=None):
 
 @socketio.on('panorama_not_found')
 def handle_panorama_not_found(data=None):
+    """
+    Обработчик запроса на регенерацию панорамы.
+    
+    ВАЖНО: Этот метод отправляет новый start_round ОБОИМ игрокам.
+    Клиент использует токен отмены (currentLoadToken) чтобы отбросить
+    результаты устаревших вызовов loadPanorama, которые могли 
+    выполняться в момент получения нового start_round.
+    """
     duel_id = data.get('duel_id')
     user_id = session.get('user_id')
 
@@ -95,7 +122,7 @@ def handle_panorama_not_found(data=None):
     duel.round_start_time = datetime.datetime.utcnow()
     db.session.commit()
 
-    # Отправляем ОБОИМ
+    # Отправляем ОБОИМ игрокам
     send_to_duel_players(duel_id, 'start_round', {
         'duel_id': duel_id,
         'round_number': duel.current_round,

@@ -31,6 +31,9 @@ let panoramaNotFoundSent = false;
 let guessSubmitted = false;
 let roundFinished = false;
 
+// ★ Токен отмены для асинхронных операций загрузки панорам
+let currentLoadToken = null;
+
 socket.emit('join_duel_from_queue', { duel_id: duelId });
 console.log('Sent join_duel_from_queue, duel_id=' + duelId);
 
@@ -49,6 +52,16 @@ function destroyPanoramaPlayer() {
 }
 
 // ===========================
+// Сброс всех состояний загрузки панорам
+// ===========================
+function resetPanoramaState() {
+    currentLoadToken = null;
+    panoramaAttempts = 0;
+    panoramaNotFoundSent = false;
+    destroyPanoramaPlayer();
+}
+
+// ===========================
 // Яндекс.Карты
 // ===========================
 ymaps.ready(function() {
@@ -58,7 +71,6 @@ ymaps.ready(function() {
         controls: []
     });
 
-    // Передаём карту в UI-скрипт для сворачивания/разворачивания
     if (typeof setUIMap === 'function') {
         setUIMap(myMap);
     }
@@ -86,7 +98,6 @@ ymaps.ready(function() {
         }
         document.getElementById('guessBtn').disabled = false;
 
-        // Скрываем подсказку
         if (typeof hideMapHint === 'function') {
             hideMapHint();
         }
@@ -94,24 +105,37 @@ ymaps.ready(function() {
 });
 
 // ===========================
-// Загрузка панорамы
+// Загрузка панорамы (с токеном отмены)
 // ===========================
 async function loadPanorama(lat, lon, cityName) {
-    console.log(`[PANORAMA] Loading: ${cityName} at ${lat.toFixed(6)}, ${lon.toFixed(6)}`);
+    const myToken = {};
+    currentLoadToken = myToken;
 
-    // Убиваем старый плеер
+    console.log(`[PANORAMA] Loading: ${cityName} at ${lat.toFixed(6)}, ${lon.toFixed(6)} [token: ${JSON.stringify(myToken)}]`);
+
     destroyPanoramaPlayer();
 
     const panoDiv = document.getElementById('pano');
-    if (!panoDiv) return;
+    if (!panoDiv) {
+        console.warn('[PANORAMA] Container #pano not found in DOM');
+        return;
+    }
 
-    // Очищаем контейнер
     panoDiv.innerHTML = '';
     panoDiv.style.display = 'block';
 
-    // Ждём перерисовку DOM
     await new Promise(resolve => requestAnimationFrame(resolve));
     await new Promise(resolve => setTimeout(resolve, 50));
+
+    if (currentLoadToken !== myToken) {
+        console.log(`[PANORAMA] Token expired before locate for ${cityName} at ${lat.toFixed(6)}, ${lon.toFixed(6)}`);
+        return;
+    }
+
+    if (!document.getElementById('pano')) {
+        console.warn('[PANORAMA] Container #pano removed from DOM');
+        return;
+    }
 
     if (panoDiv.offsetWidth === 0 || panoDiv.offsetHeight === 0) {
         console.error('[PANORAMA] Container has zero size');
@@ -120,9 +144,20 @@ async function loadPanorama(lat, lon, cityName) {
 
     try {
         const panoramas = await ymaps.panorama.locate([lat, lon]);
-        if (!panoramas || panoramas.length === 0) throw new Error('No panorama');
 
-        if (!document.getElementById('pano')) return;
+        if (currentLoadToken !== myToken) {
+            console.log(`[PANORAMA] Token expired after locate for ${cityName} at ${lat.toFixed(6)}, ${lon.toFixed(6)} — discarding result`);
+            return;
+        }
+
+        if (!panoramas || panoramas.length === 0) {
+            throw new Error('No panorama');
+        }
+
+        if (!document.getElementById('pano')) {
+            console.warn('[PANORAMA] Container #pano removed from DOM after locate');
+            return;
+        }
 
         panoramaAttempts = 0;
         panoramaNotFoundSent = false;
@@ -133,41 +168,87 @@ async function loadPanorama(lat, lon, cityName) {
             suppressMapOpenBlock: true
         });
 
-        console.log('[PANORAMA] ✓ Loaded');
+        console.log(`[PANORAMA] ✓ Loaded: ${cityName} at ${lat.toFixed(6)}, ${lon.toFixed(6)}`);
 
     } catch (error) {
-        console.log(`[PANORAMA] ✗ Not found`);
+        if (currentLoadToken !== myToken) {
+            console.log(`[PANORAMA] Token expired in catch for ${cityName} at ${lat.toFixed(6)}, ${lon.toFixed(6)} — discarding error`);
+            return;
+        }
+
+        console.log(`[PANORAMA] ✗ Not found: ${cityName} at ${lat.toFixed(6)}, ${lon.toFixed(6)}`);
         panoramaAttempts++;
 
-        if (!document.getElementById('pano')) return;
-        if (guessSubmitted || roundFinished) return;
+        if (!document.getElementById('pano')) {
+            console.warn('[PANORAMA] Container #pano removed from DOM');
+            return;
+        }
+
+        if (guessSubmitted || roundFinished) {
+            console.log('[PANORAMA] Guess already submitted or round finished, not requesting regeneration');
+            return;
+        }
 
         if (panoramaAttempts < MAX_PANORAMA_ATTEMPTS && !panoramaNotFoundSent) {
             panoramaNotFoundSent = true;
+            console.log(`[PANORAMA] Requesting regeneration (attempt ${panoramaAttempts}/${MAX_PANORAMA_ATTEMPTS})`);
             socket.emit('panorama_not_found', { duel_id: duelId });
-        } else if (panoramaAttempts >= MAX_PANORAMA_ATTEMPTS) {
-            panoDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;"><div><div style="font-size:48px;">🗺️</div><div>Панорама недоступна</div><div style="font-size:12px;">${cityName}</div></div></div>`;
+        }
+        else if (panoramaAttempts >= MAX_PANORAMA_ATTEMPTS) {
+            console.log(`[PANORAMA] Max attempts reached (${MAX_PANORAMA_ATTEMPTS}), showing placeholder`);
+            panoDiv.innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:center;
+                            height:100%;color:var(--muted);text-align:center;">
+                    <div>
+                        <div style="font-size:48px;">🗺️</div>
+                        <div>Панорама недоступна</div>
+                        <div style="font-size:12px;">${cityName}</div>
+                    </div>
+                </div>`;
         }
     }
 }
 
 // ===========================
-// Обработчик start_round
+// Сокет-события
 // ===========================
+
+// ★ ИСПРАВЛЕНИЕ: duel_found теперь приходит и при переподключении
+socket.on('duel_found', function(data) {
+    console.log('duel_found received (reconnect):', data);
+    
+    // Сохраняем данные в sessionStorage для VS-экрана
+    if (data.opponent_name) {
+        sessionStorage.setItem('opponent_name', data.opponent_name);
+    }
+    if (data.opponent_id) {
+        sessionStorage.setItem('opponent_id', data.opponent_id);
+    }
+    
+    document.getElementById('opponentStatus').textContent = data.opponent_name + ' думает...';
+    
+    // ★ Триггерим событие для VS-экрана
+    window.dispatchEvent(new CustomEvent('duel_data_ready', {
+        detail: {
+            opponent_id: data.opponent_id,
+            opponent_name: data.opponent_name,
+            my_user_id: data.my_user_id
+        }
+    }));
+});
+
 socket.on('start_round', function(data) {
     console.log('start_round received:', data);
 
     const isNewRound = (data.round_number !== currentRound);
 
-    // Если догадка уже отправлена в этом раунде — игнорируем
     if (!isNewRound && (guessSubmitted || roundFinished)) {
         console.log('[DUEL] Ignoring start_round, round already handled');
         return;
     }
 
-    // Сброс состояния
-    panoramaNotFoundSent = false;
-    panoramaAttempts = 0;
+    resetPanoramaState();
+
     currentRound = data.round_number;
     roundActive = true;
     guessSubmitted = false;
@@ -198,13 +279,6 @@ socket.on('start_round', function(data) {
     console.log(`[DUEL] Round ${currentRound} started (newRound=${isNewRound})`);
 });
 
-// ===========================
-// Сокет-события
-// ===========================
-socket.on('duel_found', function(data) {
-    document.getElementById('opponentStatus').textContent = data.opponent_name + ' думает...';
-});
-
 socket.on('player_moved', function(data) {
     if (data.user_id != myUserId) {
         document.getElementById('opponentStatus').textContent = data.user_name + ' сделал ход';
@@ -216,7 +290,7 @@ socket.on('round_result', function(data) {
     roundActive = false;
     roundFinished = true;
     stopTimer();
-    destroyPanoramaPlayer();
+    resetPanoramaState();
 
     document.getElementById('guessBtn').disabled = true;
 
@@ -243,13 +317,13 @@ socket.on('player_ready_next', function(data) {
 
 socket.on('duel_finished', function(data) {
     stopTimer();
-    destroyPanoramaPlayer();
+    resetPanoramaState();
     showDuelFinished(data);
 });
 
 socket.on('opponent_disconnected', function() {
     stopTimer();
-    destroyPanoramaPlayer();
+    resetPanoramaState();
     alert('Соперник отключился. Дуэль завершена.');
     window.location.href = '/duel';
 });
@@ -279,10 +353,13 @@ function startTimer() {
     }, 1000);
 }
 
-function stopTimer() { clearInterval(timerInterval); }
+function stopTimer() { 
+    clearInterval(timerInterval); 
+}
 
 function updateTimerDisplay() {
     const pill = document.getElementById('timerPill');
+    if (!pill) return;
     pill.textContent = timeLeft;
     pill.classList.remove('safe', 'warn', 'danger');
     if (timeLeft <= 10) pill.classList.add('danger');
@@ -314,6 +391,7 @@ document.getElementById('guessBtn').addEventListener('click', function() {
 // ===========================
 function showRoundResults(data) {
     const roundModal = document.getElementById('roundModal');
+    if (!roundModal) return;
     roundModal.classList.add('visible');
 
     setTimeout(function() {
@@ -352,7 +430,14 @@ function showRoundResults(data) {
         });
 
         if (allPoints.length > 1) {
-            try { resultMap.setBounds(resultMap.geoObjects.getBounds(), { zoomMargin: 50, checkZoomRange: true }); } catch(e) {}
+            try { 
+                resultMap.setBounds(resultMap.geoObjects.getBounds(), { 
+                    zoomMargin: 50, 
+                    checkZoomRange: true 
+                }); 
+            } catch(e) {
+                console.warn('Failed to set map bounds:', e);
+            }
         }
     }, 300);
 
@@ -366,25 +451,39 @@ function showRoundResults(data) {
         </tr>`;
     });
     html += '</tbody></table>';
-    document.getElementById('scoresTableContainer').innerHTML = html;
+    
+    const scoresContainer = document.getElementById('scoresTableContainer');
+    if (scoresContainer) {
+        scoresContainer.innerHTML = html;
+    }
 
     const nextBtn = document.getElementById('nextRoundBtn');
-    document.getElementById('roundModalTitle').textContent = data.is_last_round ? '🏁 Финальный раунд' : '📍 Раунд ' + data.round_number;
-    nextBtn.textContent = data.is_last_round ? 'Завершить дуэль' : 'Следующий раунд →';
-    nextBtn.className = data.is_last_round ? 'btn-finish' : 'btn-next';
-    nextBtn.disabled = false;
+    const roundModalTitle = document.getElementById('roundModalTitle');
+    
+    if (roundModalTitle) {
+        roundModalTitle.textContent = data.is_last_round ? '🏁 Финальный раунд' : '📍 Раунд ' + data.round_number;
+    }
+    if (nextBtn) {
+        nextBtn.textContent = data.is_last_round ? 'Завершить дуэль' : 'Следующий раунд →';
+        nextBtn.className = data.is_last_round ? 'btn-finish' : 'btn-next';
+        nextBtn.disabled = false;
+    }
 }
 
 function goNextRound() {
     socket.emit('next_round', { duel_id: duelId });
-    document.getElementById('nextRoundBtn').disabled = true;
-    document.getElementById('nextRoundBtn').textContent = 'Ожидание соперника...';
+    const nextBtn = document.getElementById('nextRoundBtn');
+    if (nextBtn) {
+        nextBtn.disabled = true;
+        nextBtn.textContent = 'Ожидание соперника...';
+    }
     document.getElementById('opponentStatus').textContent = 'Ожидание соперника...';
     document.getElementById('opponentStatus').className = 'opponent-status waiting';
 }
 
 function showDuelFinished(data) {
     document.getElementById('roundModal').classList.remove('visible');
+    
     const myScore = data.total_scores[myUserId] || myTotalScore;
     const oppId = Object.keys(data.total_scores).find(id => id != myUserId);
     const oppScore = oppId ? (data.total_scores[oppId] || 0) : opponentTotalScore;

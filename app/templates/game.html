@@ -410,17 +410,21 @@
             font-family: 'Bebas Neue', sans-serif;
             font-size: 56px;
             letter-spacing: 6px;
-            color: var(--accent);
-        }
-
-        .loading-logo {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 56px;
-            letter-spacing: 6px;
             color: var(--text);
         }
 
+        .loading-logo span { color: var(--accent); }
+
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
 
         .loading-text {
             font-size: 12px;
@@ -570,7 +574,7 @@
 <body>
 
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-logo">Мос<span style="color: var(--accent);">Guessr</span></div>
+        <div class="loading-logo">Мос<span>Guessr</span></div>
         <div class="loading-spinner"></div>
         <div class="loading-text" id="loadingText">Ищем панораму</div>
         <div class="loading-attempt" id="attemptCounter"></div>
@@ -673,6 +677,7 @@
         let roundCompleted = false;
         let mapExpanded = false;
         let mapCollapsed = false;
+        let hoverTimeout = null;
 
         const mapFloat  = document.getElementById('mapFloat');
         const expandBtn = document.getElementById('expandBtn');
@@ -721,6 +726,31 @@
             }
         }
 
+        // ===========================
+        // Управление размерами карты (hover + кнопки)
+        // ===========================
+
+        // Отслеживаем наведение мыши для hover-эффекта
+        mapFloat.addEventListener('mouseenter', () => {
+            if (!mapCollapsed) {
+                hoverTimeout = setTimeout(() => {
+                    updateMapSize();
+                }, 350); // Чуть больше, чем transition duration (0.3s)
+            }
+        });
+
+        mapFloat.addEventListener('mouseleave', () => {
+            if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = null;
+            }
+            if (!mapCollapsed && !mapExpanded) {
+                setTimeout(() => {
+                    updateMapSize();
+                }, 350);
+            }
+        });
+
         expandBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (mapCollapsed) {
@@ -732,7 +762,7 @@
             mapFloat.classList.toggle('expanded', mapExpanded);
             updateExpandIcon();
             setTimeout(() => {
-                if (map) map.container.fitToViewport();
+                updateMapSize();
             }, 370);
         });
 
@@ -748,7 +778,7 @@
             updateCollapseIcon();
             if (!mapCollapsed) {
                 setTimeout(() => {
-                    if (map) map.container.fitToViewport();
+                    updateMapSize();
                 }, 370);
             }
         });
@@ -775,13 +805,17 @@
         }
 
         function updateMapSize() {
-            if (map) {
+            if (map && !mapCollapsed) {
+                // Небольшая задержка для завершения CSS-перехода
                 setTimeout(() => {
-                    map.container.fitToViewport();
-                }, 300);
+                    if (map && map.container) {
+                        map.container.fitToViewport();
+                    }
+                }, 50);
             }
         }
 
+        // Наблюдатель за изменением размера контейнера карты
         const resizeObserver = new ResizeObserver(() => {
             updateMapSize();
         });
@@ -819,7 +853,7 @@
                     suppressMapOpenBlock: true
                 }).then(player => {
                     panoramaPlayer = player;
-                    cleanPanoramaMarkers(); // 🧹 Очищаем маркеры
+                    cleanPanoramaMarkers();
                 }).catch(() => {
                     ymaps.panorama.locate(startCoords).then(panoramas => {
                         if (panoramas.length) {
@@ -827,7 +861,7 @@
                                 controls: [],
                                 suppressMapOpenBlock: true
                             });
-                            cleanPanoramaMarkers(); // 🧹 Очищаем маркеры
+                            cleanPanoramaMarkers();
                         }
                     });
                 });
@@ -971,7 +1005,7 @@
                 updateExpandIcon();
             }
             setTimeout(() => {
-                if (map) map.container.fitToViewport();
+                updateMapSize();
             }, 370);
         }
 
