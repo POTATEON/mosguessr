@@ -56,3 +56,28 @@ def get_user_avatar(user_id):
         'avatar_url': avatar_url,
         'avatar_type': user.avatar_type
     })
+
+
+@bp.route('/user/<int:user_id>/games')
+def user_games(user_id):
+    """API для получения всех игр пользователя"""
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    games = user.games.order_by(Game.played_at.desc()).all()
+
+    result = []
+    for g in games:
+        result.append({
+            'id': g.id,
+            'score': g.score,
+            'distance': g.distance,
+            'actual_city': g.actual_city,
+            'is_surprise': g.is_surprise,
+            'user_guess_lat': g.user_guess_lat,
+            'user_guess_lon': g.user_guess_lon,
+            'played_at': g.played_at.isoformat()
+        })
+
+    return jsonify(result)

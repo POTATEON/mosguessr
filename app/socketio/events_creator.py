@@ -1,5 +1,5 @@
 """События режима Создатель"""
-from flask import session, request
+from flask import session, request, current_app
 from flask_socketio import emit
 from app.extensions import socketio, db
 from app.models.duel import Duel

@@ -489,6 +489,13 @@
             pointer-events: none;
         }
 
+        /* Стиль для disabled кнопки экспорта */
+        .profile-action.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
         @media (max-width: 480px) {
             .btn-group { flex-direction: column; }
             .btn { min-width: auto; }
@@ -574,12 +581,16 @@
                         </svg>
                         Редактировать профиль
                     </a>
-                    <a href="{{ url_for('game.leaderboard') }}" class="profile-action">
+
+                    <!-- Кнопка экспорта статистики вместо таблицы лидеров -->
+                    <button class="profile-action" id="exportStatsBtn" onclick="exportUserStats({{ user.id }}, '{{ user.name|e }}')" style="width: 100%; text-align: left;">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 6 9 6 9zM18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 18 9 18 9zM4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+                            <path d="M12 3v12m0 0-3-3m3 3 3-3M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/>
+                            <rect x="4" y="4" width="6" height="6" rx="1"/>
                         </svg>
-                        Таблица лидеров
-                    </a>
+                        Экспорт статистики
+                    </button>
+
                     <div class="profile-dropdown-divider"></div>
                     <a href="{{ url_for('auth.logout') }}" class="profile-action danger">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -677,6 +688,198 @@
                 dropdown.classList.remove('active');
             }
         });
+
+        // Функция экспорта статистики в CSV
+        async function exportUserStats(userId, userName) {
+            const btn = document.getElementById('exportStatsBtn');
+            const originalText = btn.innerHTML;
+
+            // Показываем состояние загрузки
+            btn.innerHTML = `
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke-dasharray="31.4" stroke-dashoffset="15.7">
+                        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
+                    </circle>
+                </svg>
+                Загрузка...
+            `;
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+
+            try {
+                // Получаем все игры пользователя через API
+                const response = await fetch(`/api/user/${userId}/games`);
+
+                if (!response.ok) {
+                    throw new Error(`Ошибка HTTP: ${response.status}`);
+                }
+
+                const games = await response.json();
+
+                if (!games || games.length === 0) {
+                    alert('Нет данных для экспорта');
+                    return;
+                }
+
+                // Формируем CSV
+                const headers = [
+                    'ID игры',
+                    'Дата',
+                    'Очки',
+                    'Расстояние (км)',
+                    'Город',
+                    'Сюрприз',
+                    'Широта ответа',
+                    'Долгота ответа'
+                ];
+
+                const rows = games.map(game => [
+                    game.id,
+                    new Date(game.played_at).toLocaleString('ru-RU'),
+                    game.score,
+                    (game.distance / 1000).toFixed(2),
+                    game.actual_city,
+                    game.is_surprise ? 'Да' : 'Нет',
+                    game.user_guess_lat?.toFixed(6) || '-',
+                    game.user_guess_lon?.toFixed(6) || '-'
+                ]);
+
+                // Считаем общую статистику
+                const totalScore = games.reduce((sum, g) => sum + (g.score || 0), 0);
+                const totalDistance = games.reduce((sum, g) => sum + (g.distance || 0), 0);
+                const avgScore = games.length > 0 ? (totalScore / games.length).toFixed(2) : 0;
+                const avgDistance = games.length > 0 ? (totalDistance / games.length / 1000).toFixed(2) : 0;
+                const bestScore = games.length > 0 ? Math.max(...games.map(g => g.score || 0)) : 0;
+                const surpriseCount = games.filter(g => g.is_surprise).length;
+
+                // Добавляем строку со сводной статистикой
+                const summaryRows = [
+                    [],
+                    ['=== СВОДНАЯ СТАТИСТИКА ==='],
+                    [`Всего игр`, games.length],
+                    [`Общий счёт`, totalScore],
+                    [`Средний счёт`, avgScore],
+                    [`Лучший счёт`, bestScore],
+                    [`Общее расстояние (км)`, (totalDistance / 1000).toFixed(2)],
+                    [`Среднее расстояние (км)`, avgDistance],
+                    [`Сюрпризов найдено`, surpriseCount],
+                    [`Дата выгрузки`, new Date().toLocaleString('ru-RU')]
+                ];
+
+                // Создаем CSV контент
+                const csvRows = [];
+
+                // Заголовок с именем пользователя
+                csvRows.push(`"СТАТИСТИКА ИГРОКА: ${userName.replace(/"/g, '""')}"`);
+                csvRows.push(`"ID пользователя: ${userId}"`);
+                csvRows.push('');
+
+                // Основная таблица
+                csvRows.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','));
+
+                for (const row of rows) {
+                    csvRows.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+                }
+
+                csvRows.push('');
+
+                // Сводная статистика
+                for (const row of summaryRows) {
+                    if (row.length === 0) {
+                        csvRows.push('');
+                    } else {
+                        csvRows.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+                    }
+                }
+
+                const csvContent = csvRows.join('\n');
+
+                // Добавляем BOM для корректного отображения кириллицы
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+                // Создаем ссылку для скачивания
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `stats_${userName}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                // Показываем уведомление об успехе
+                showNotification('Статистика экспортирована!', 'success');
+
+            } catch (error) {
+                console.error('Ошибка экспорта:', error);
+                showNotification('Ошибка при экспорте статистики', 'error');
+            } finally {
+                // Восстанавливаем кнопку
+                btn.innerHTML = originalText;
+                btn.style.opacity = '';
+                btn.style.pointerEvents = '';
+            }
+        }
+
+        // Функция для показа уведомления
+        function showNotification(message, type = 'info') {
+            // Создаем уведомление
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.left = '50%';
+            notification.style.transform = 'translateX(-50%)';
+            notification.style.padding = '12px 24px';
+            notification.style.borderRadius = '10px';
+            notification.style.fontSize = '14px';
+            notification.style.fontWeight = '500';
+            notification.style.zIndex = '10000';
+            notification.style.animation = 'slideUp 0.3s ease';
+
+            if (type === 'success') {
+                notification.style.background = 'rgba(63,185,80,0.95)';
+                notification.style.color = '#fff';
+                notification.style.border = '1px solid #3fb950';
+            } else if (type === 'error') {
+                notification.style.background = 'rgba(248,81,73,0.95)';
+                notification.style.color = '#fff';
+                notification.style.border = '1px solid #f85149';
+            } else {
+                notification.style.background = 'rgba(240,165,0,0.95)';
+                notification.style.color = '#0d1117';
+                notification.style.border = '1px solid #f0a500';
+            }
+
+            document.body.appendChild(notification);
+
+            // Автоматически скрываем через 3 секунды
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Добавляем анимацию для уведомления
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideUp {
+                from {
+                    opacity: 0;
+                    transform: translateX(-50%) translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
