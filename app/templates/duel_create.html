@@ -780,22 +780,52 @@
         }
 
         // ===== ФИНИШ =====
+        // ===== ФИНИШ =====    
+        // ===== ФИНИШ =====
         socket.on('duel_finished', (data) => {
             stopTimer();
             const myScore = data.total_scores[myUserId] || 0;
             const oppId = Object.keys(data.total_scores).find(id => id != myUserId);
             const oppScore = oppId ? (data.total_scores[oppId] || 0) : 0;
-            let title, html;
-            if (myScore > oppScore) { title = '🏆 Вы победили!'; html = `<p style="font-size:64px;color:var(--green);font-family:'Bebas Neue',sans-serif;text-align:center;margin:20px 0;">${myScore} : ${oppScore}</p>`; }
-            else if (oppScore > myScore) { title = '😞 Вы проиграли'; html = `<p style="font-size:64px;color:var(--red);font-family:'Bebas Neue',sans-serif;text-align:center;margin:20px 0;">${myScore} : ${oppScore}</p>`; }
-            else { title = '🤝 Ничья!'; html = `<p style="font-size:64px;color:var(--accent);font-family:'Bebas Neue',sans-serif;text-align:center;margin:20px 0;">${myScore} : ${oppScore}</p>`; }
+            
+            let title;
+            if (myScore > oppScore) title = '🏆 Вы победили!';      
+            else if (oppScore > myScore) title = '😞 Вы проиграли';
+            else title = '🤝 Ничья!';
+            
             resultsMapsRow.style.display = 'none';
             document.getElementById('resultModal').classList.add('visible');
             document.getElementById('resultTitle').textContent = title;
-            document.getElementById('scoresTableContainer').innerHTML = html;
+            
+            // Контейнер для кнопок
+            let buttonsHtml = `
+                <p style="font-size:64px;font-family:'Bebas Neue',sans-serif;text-align:center;margin:20px 0;">
+                    ${myScore} : ${oppScore}
+                </p>
+            `;
+            
+            // 🆕 Всегда добавляем кнопку "В меню дуэлей"
+            buttonsHtml += `
+                <button class="btn-next" onclick="window.location.href='/duel'">
+                    📋 В меню дуэлей
+                </button>
+            `;
+            
+            // 🆕 Если есть лобби - добавляем кнопку возврата в лобби
+            if (data.lobby_id) {
+                buttonsHtml += `
+                    <button class="btn-next" style="background: var(--green); margin-top: 8px;" 
+                            onclick="window.location.href='/duel/lobby/${data.lobby_id}'">
+                        🔄 Вернуться в лобби
+                    </button>
+                `;
+            }
+            
+            document.getElementById('scoresTableContainer').innerHTML = buttonsHtml;
+            
+            // Скрываем стандартную кнопку nextRoundBtn, так как мы добавили свои
             const btn = document.getElementById('nextRoundBtn');
-            btn.textContent = 'В меню дуэлей'; btn.disabled = false;
-            btn.onclick = () => window.location.href = '/duel';
+            btn.style.display = 'none';
         });
 
         // ===== ТАЙМЕР =====

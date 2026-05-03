@@ -10,10 +10,10 @@ from .state import duel_rooms, creator_locations, creator_guesses, creator_timer
 from .helpers import send_to_player, send_to_duel_except
 
 
-def create_creator_duel(player1, player2):
+def create_creator_duel(player1, player2, lobby_id=None):
     duel = Duel(
         player1_id=player1['user_id'], player2_id=player2['user_id'],
-        status='in_progress', current_round=1, lobby_id=None
+        status='in_progress', current_round=1, lobby_id=lobby_id
     )
     db.session.add(duel)
     db.session.commit()
@@ -27,7 +27,8 @@ def create_creator_duel(player1, player2):
             'opponent_name': opponent['name'],
             'opponent_id': opponent['user_id'],
             'my_user_id': player['user_id'],
-            'mode': 'creator'
+            'mode': 'creator',
+            'lobby_id': lobby_id
         }, room=player['sid'])
 
 

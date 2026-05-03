@@ -503,4 +503,30 @@ function showDuelFinished(data) {
     document.getElementById('finishTitle').textContent = title;
     document.getElementById('finishContent').innerHTML = content;
     document.getElementById('finishModal').classList.add('visible');
+    
+    // 🆕 Меняем кнопки в финишном модальном окне
+    const finishModal = document.getElementById('finishModal');
+    const modalCard = finishModal.querySelector('.modal-card');
+    
+    // Убираем старые кнопки
+    const oldLinks = modalCard.querySelectorAll('a');
+    oldLinks.forEach(link => link.remove());
+    
+    // Добавляем кнопку возврата в лобби (если есть lobby_id)
+    if (data.lobby_id) {
+        const lobbyBtn = document.createElement('a');
+        lobbyBtn.href = '/duel/lobby/' + data.lobby_id;
+        lobbyBtn.className = 'btn-finish';
+        lobbyBtn.style.cssText = 'display:block;text-align:center;text-decoration:none;';
+        lobbyBtn.textContent = '🔄 Вернуться в лобби';
+        modalCard.appendChild(lobbyBtn);
+    }
+    
+    // Кнопка в меню дуэлей
+    const menuBtn = document.createElement('a');
+    menuBtn.href = '/duel';
+    menuBtn.className = 'btn-menu';
+    menuBtn.style.cssText = 'display:block;text-align:center;text-decoration:none;margin-top:8px;';
+    menuBtn.textContent = '📋 В меню дуэлей';
+    modalCard.appendChild(menuBtn);
 }

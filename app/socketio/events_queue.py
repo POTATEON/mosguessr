@@ -43,7 +43,7 @@ def handle_leave_queue():
 
 
 @socketio.on('create_lobby')
-def handle_create_lobby():
+def handle_create_lobby(data=None):
     user_id = session.get('user_id')
     user_name = session.get('user_name', 'Аноним')
     if not user_id:
@@ -54,10 +54,16 @@ def handle_create_lobby():
     active_lobbies[lobby_id] = {
         'players': [{'user_id': user_id, 'name': user_name, 'sid': request.sid, 'ready': False}],
         'host': user_id,
-        'duel': None
+        'duel': None,
+        'mode': 'classic'
     }
     join_room(lobby_id)
-    emit('lobby_created', {'lobby_id': lobby_id, 'players': active_lobbies[lobby_id]['players']})
+    emit('lobby_created', {
+            'lobby_id': lobby_id, 
+            'players': active_lobbies[lobby_id]['players'],
+            'host': user_id,
+            'mode': 'classic'  # 🆕
+        })
 
 
 @socketio.on('join_lobby')
@@ -81,10 +87,41 @@ def handle_join_lobby(data=None):
             emit('error', {'message': 'Лобби заполнено'})
             return
         lobby['players'].append({'user_id': user_id, 'name': user_name, 'sid': request.sid, 'ready': False})
-
+    
     join_room(lobby_id)
-    emit('lobby_update', {'lobby_id': lobby_id, 'players': lobby['players'], 'host': lobby['host']}, room=lobby_id)
+    emit('lobby_update', {
+        'lobby_id': lobby_id, 
+        'players': lobby['players'], 
+        'host': lobby['host'],
+        'mode': lobby.get('mode', 'classic')  # 🆕
+    }, room=lobby_id)
 
+# В events.py добавляем новое событие
+@socketio.on('set_lobby_mode')
+def handle_set_lobby_mode(data):
+    lobby_id = data.get('lobby_id')
+    mode = data.get('mode')  # 'classic' или 'creator'
+    user_id = session.get('user_id')
+    
+    if lobby_id not in active_lobbies:
+        return
+    
+    lobby = active_lobbies[lobby_id]
+    
+    # Только хост может менять режим
+    if lobby['host'] != user_id:
+        emit('error', {'message': 'Только создатель может менять режим'})
+        return
+    
+    lobby['mode'] = mode
+    
+    # Оповещаем всех в лобби
+    emit('lobby_update', {
+        'lobby_id': lobby_id,
+        'players': lobby['players'],
+        'host': lobby['host'],
+        'mode': mode
+    }, room=lobby_id)
 
 @socketio.on('player_ready')
 def handle_player_ready(data=None):
@@ -99,12 +136,21 @@ def handle_player_ready(data=None):
             p['ready'] = True
             break
 
-    emit('lobby_update', {'lobby_id': lobby_id, 'players': lobby['players'], 'host': lobby['host']}, room=lobby_id)
+    emit('lobby_update', {
+        'lobby_id': lobby_id, 
+        'players': lobby['players'], 
+        'host': lobby['host'],
+        'mode': lobby.get('mode', 'classic')  # 🆕 Отправляем режим
+    }, room=lobby_id)
 
     if len(lobby['players']) == 2 and all(p['ready'] for p in lobby['players']):
         p1, p2 = lobby['players']
-        create_duel(p1, p2, lobby_id)
-
+        
+        # 🆕 Выбираем тип дуэли
+        if lobby.get('mode') == 'creator':
+            create_creator_duel(p1, p2, lobby_id)
+        else:
+            create_duel(p1, p2, lobby_id)
 
 @socketio.on('join_creator_queue')
 def handle_join_creator_queue(data=None):

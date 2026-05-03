@@ -595,32 +595,44 @@ function resetForNextRound() {
 // ===========================
 // Завершение дуэли
 // ===========================
+// ===== ФИНИШ =====
 socket.on('duel_finished', (data) => {
     stopTimer();
-
     const myScore = data.total_scores[myUserId] || 0;
     const oppId = Object.keys(data.total_scores).find(id => id != myUserId);
     const oppScore = oppId ? (data.total_scores[oppId] || 0) : 0;
-
-    let title, content;
-    if (myScore > oppScore) {
-        title = '🏆 Вы победили!';
-        content = `<p style="font-size:64px;color:var(--green);font-family:'Bebas Neue',sans-serif;">${myScore} : ${oppScore}</p>`;
-    } else if (oppScore > myScore) {
-        title = '😞 Вы проиграли';
-        content = `<p style="font-size:64px;color:var(--red);font-family:'Bebas Neue',sans-serif;">${myScore} : ${oppScore}</p>`;
-    } else {
-        title = '🤝 Ничья!';
-        content = `<p style="font-size:64px;color:var(--accent);font-family:'Bebas Neue',sans-serif;">${myScore} : ${oppScore}</p>`;
-    }
-
+    
+    let title;
+    if (myScore > oppScore) title = '🏆 Вы победили!';
+    else if (oppScore > myScore) title = '😞 Вы проиграли';
+    else title = '🤝 Ничья!';
+    
+    resultsMapsRow.style.display = 'none';
     document.getElementById('resultModal').classList.add('visible');
     document.getElementById('resultTitle').textContent = title;
-    document.getElementById('scoresTableContainer').innerHTML = content;
-
-    const nextBtn = document.getElementById('nextRoundBtn');
-    nextBtn.textContent = 'В меню дуэлей';
-    nextBtn.onclick = () => window.location.href = '/duel';
+    document.getElementById('scoresTableContainer').innerHTML = `
+        <p style="font-size:64px;font-family:'Bebas Neue',sans-serif;text-align:center;margin:20px 0;">
+            ${myScore} : ${oppScore}
+        </p>
+    `;
+    
+    const btn = document.getElementById('nextRoundBtn');
+    console.debug("data.lobby_id")
+    console.debug(data.lobby_id)
+    // 🆕 Если есть лобби - возвращаемся в него
+    if (data.lobby_id) {
+        btn.textContent = '🔄 Вернуться в лобби';
+        btn.onclick = () => {
+            window.location.href = '/duel/lobby/' + data.lobby_id;
+        };
+    } else {
+        btn.textContent = '📋 В меню дуэлей';
+        btn.onclick = () => {
+            window.location.href = '/duel';
+        };
+    }
+    
+    btn.disabled = false;
 });
 
 // ===========================

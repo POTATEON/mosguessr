@@ -18,6 +18,7 @@
             --text: #e6edf3;
             --muted: #8b949e;
             --green: #3fb950;
+            --purple: #9b59b6;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -71,7 +72,9 @@
             display: inline-flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 28px;
+            margin-bottom: 20px;
+            width: 100%;
+            justify-content: space-between;
         }
 
         .lobby-id-label {
@@ -105,6 +108,90 @@
         .copy-btn:hover {
             border-color: var(--accent);
             color: var(--accent);
+        }
+
+        /* 🆕 Стили для выбора режима */
+        .mode-selector-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            text-align: left;
+        }
+
+        .mode-selector-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .mode-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' fill='none' stroke='%238b949e' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+
+        .mode-select:hover {
+            border-color: var(--accent);
+        }
+
+        .mode-select:focus {
+            outline: none;
+            border-color: var(--accent2);
+        }
+
+        .mode-select option {
+            background: var(--surface2);
+            color: var(--text);
+            padding: 12px;
+        }
+
+        /* 🆕 Стили для отображения режима (для не-хоста) */
+        .mode-display-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .mode-display-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .mode-display-value {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .mode-display-value.classic {
+            color: var(--accent);
+        }
+
+        .mode-display-value.creator {
+            color: var(--purple);
         }
 
         .players-list {
@@ -197,7 +284,8 @@
         .status-msg {
             margin-top: 16px;
             font-size: 13px;
-            color: var(--muted);
+            color: var(--accent);
+            min-height: 20px;
         }
     </style>
 </head>
@@ -206,11 +294,31 @@
         <h2>🏠 <span>Лобби</span></h2>
 
         <div class="lobby-id-box">
-            <div>
+            <div style="text-align: left;">
                 <div class="lobby-id-label">Код лобби</div>
                 <div class="lobby-id-value" id="lobbyIdDisplay">{{ lobby_id }}</div>
             </div>
             <button class="copy-btn" onclick="copyLobbyLink()">📋 Копировать</button>
+        </div>
+
+        <!-- 🆕 Выбор режима (виден только хосту) -->
+        <div class="mode-selector-box" id="modeSelectorBox" style="display: none;">
+            <div class="mode-selector-label">Режим игры</div>
+            <select class="mode-select" id="modeSelect" onchange="changeMode()">
+                <option value="classic">⚡ Классическая дуэль</option>
+                <option value="creator">🎨 Режим Создатель</option>
+            </select>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 8px;">
+                💡 Вы можете изменить режим в любой момент до начала игры
+            </div>
+        </div>
+
+        <!-- 🆕 Отображение режима (видно не-хосту) -->
+        <div class="mode-display-box" id="modeDisplayBox" style="display: none;">
+            <div class="mode-display-label">Режим игры</div>
+            <div class="mode-display-value classic" id="modeDisplayValue">
+                ⚡ Классическая дуэль
+            </div>
         </div>
 
         <div class="players-list" id="playersList">
@@ -220,7 +328,7 @@
             </div>
         </div>
 
-        <button id="readyBtn" class="btn btn-ready" onclick="setReady()">
+        <button id="readyBtn" class="btn btn-ready" onclick="setReady()" disabled>
             ✅ Готов
         </button>
 
@@ -239,6 +347,11 @@
         const lobbyId = '{{ lobby_id }}';
         const myName = '{{ user.name if user else "Игрок" }}';
         const myUserId = {{ user.id if user else 0 }};
+
+        // 🆕 Состояния
+        let isHost = false;
+        let currentMode = 'classic';
+        let modeChanged = false;  // Флаг, что хост уже выбирал режим
 
         console.log('==========================================');
         console.log('[LOBBY] Starting lobby page');
@@ -263,14 +376,53 @@
         // ОБРАБОТЧИКИ СОБЫТИЙ
         // ========================
 
+        // 🆕 Обработчик создания лобби (для хоста)
+        socket.on('lobby_created', function(data) {
+            console.log('[LOBBY] lobby_created received:', data);
+            
+            if (data.host == myUserId) {
+                isHost = true;
+                showModeSelector();
+            }
+            
+            if (data.mode) {
+                currentMode = data.mode;
+                updateModeDisplay();
+            }
+            
+            if (data.players) {
+                updatePlayersList(data);
+            }
+        });
+
         // Обновление списка игроков
         socket.on('lobby_update', function(data) {
             console.log('[LOBBY] lobby_update received:', data);
             console.log('[LOBBY] Players:', data.players);
+            console.log('[LOBBY] Mode:', data.mode);
+            
+            // 🆕 Определяем, хост ли мы (если ещё не определили)
+            if (!modeChanged && data.host == myUserId) {
+                isHost = true;
+                showModeSelector();
+            }
+            
+            // 🆕 Обновляем режим
+            if (data.mode !== undefined) {
+                currentMode = data.mode;
+                updateModeDisplay();
+                
+                // Синхронизируем селект с текущим режимом
+                const modeSelect = document.getElementById('modeSelect');
+                if (modeSelect && modeSelect.value !== currentMode) {
+                    modeSelect.value = currentMode;
+                }
+            }
+            
             updatePlayersList(data);
         });
 
-        // 🔥 ДУЭЛЬ НАЙДЕНА - ГЛАВНОЕ ИЗМЕНЕНИЕ
+        // 🔥 ДУЭЛЬ НАЙДЕНА
         socket.on('duel_found', function(data) {
             console.log('==========================================');
             console.log('[LOBBY] 🎯 duel_found event received!');
@@ -278,22 +430,21 @@
             console.log('[LOBBY] duel_id:', data.duel_id);
             console.log('[LOBBY] opponent_name:', data.opponent_name);
             console.log('[LOBBY] my_user_id from event:', data.my_user_id);
-            console.log('[LOBBY] myUserId from template:', myUserId);
+            console.log('[LOBBY] mode:', data.mode);
             console.log('==========================================');
 
-            // 🔥 Сохраняем данные В ПРАВИЛЬНОМ ПОРЯДКЕ
+            // 🔥 Сохраняем данные
             const duelId = data.duel_id;
             const opponentName = data.opponent_name || 'Соперник';
-
-            // 👇 ВАЖНО: Используем my_user_id из события, если есть, иначе из шаблона
             const userId = data.my_user_id || myUserId;
+            const mode = data.mode || currentMode;  // 🆕 Получаем режим
 
             console.log('[LOBBY] Preparing to save:');
             console.log('[LOBBY] - duelId:', duelId);
             console.log('[LOBBY] - opponentName:', opponentName);
             console.log('[LOBBY] - userId:', userId);
+            console.log('[LOBBY] - mode:', mode);
 
-            // Проверяем что все данные есть
             if (!duelId) {
                 console.error('[LOBBY] ❌ CRITICAL: duel_id is missing!');
                 document.getElementById('statusMsg').textContent = '❌ Ошибка: не получен ID дуэли';
@@ -311,7 +462,9 @@
                 sessionStorage.setItem('duel_id', duelId);
                 sessionStorage.setItem('opponent_name', opponentName);
                 sessionStorage.setItem('my_user_id', userId);
-
+                sessionStorage.setItem('duel_mode', mode);  // 🆕 Сохраняем режим
+                sessionStorage.setItem('lobby_id', data.lobby_id || lobbyId);
+                
                 console.log('[LOBBY] ✅ Data saved to sessionStorage successfully');
             } catch (e) {
                 console.error('[LOBBY] ❌ Failed to save to sessionStorage:', e);
@@ -320,29 +473,21 @@
             }
 
             // 🔥 ПРОВЕРЯЕМ ЧТО СОХРАНИЛОСЬ
-            const savedDuelId = sessionStorage.getItem('duel_id');
-            const savedOpponent = sessionStorage.getItem('opponent_name');
-            const savedUserId = sessionStorage.getItem('my_user_id');
-
             console.log('[LOBBY] Verification - saved data:');
-            console.log('[LOBBY] - duel_id:', savedDuelId);
-            console.log('[LOBBY] - opponent_name:', savedOpponent);
-            console.log('[LOBBY] - my_user_id:', savedUserId);
+            console.log('[LOBBY] - duel_id:', sessionStorage.getItem('duel_id'));
+            console.log('[LOBBY] - opponent_name:', sessionStorage.getItem('opponent_name'));
+            console.log('[LOBBY] - my_user_id:', sessionStorage.getItem('my_user_id'));
+            console.log('[LOBBY] - mode:', sessionStorage.getItem('duel_mode'));
 
-            if (!savedDuelId || !savedUserId) {
-                console.error('[LOBBY] ❌ Verification failed! Data not saved correctly');
-                document.getElementById('statusMsg').textContent = '❌ Ошибка: данные не сохранились';
-                return;
-            }
-
-            // 🔥 ПЕРЕХОДИМ НА СТРАНИЦУ ДУЭЛИ
-            console.log('[LOBBY] ✅ All checks passed, redirecting to match...');
+            // 🔥 ПЕРЕХОДИМ НА СТРАНИЦУ ДУЭЛИ в зависимости от режима
+            console.log('[LOBBY] ✅ All checks passed, redirecting...');
             document.getElementById('statusMsg').textContent = '✅ Дуэль найдена! Переходим...';
 
-            // Небольшая задержка чтобы убедиться что данные точно сохранились
             setTimeout(() => {
-                console.log('[LOBBY] 🚀 Redirecting now to /duel/match');
-                window.location.href = '/duel/match';
+                // 🆕 Редирект в зависимости от режима
+                const redirectUrl = mode === 'creator' ? '/duel/create/match' : '/duel/match';
+                console.log('[LOBBY] 🚀 Redirecting to:', redirectUrl);
+                window.location.href = redirectUrl;
             }, 300);
         });
 
@@ -351,6 +496,65 @@
             console.error('[LOBBY] ❌ Socket error:', data);
             document.getElementById('statusMsg').textContent = '❌ ' + data.message;
         });
+
+        // ========================
+        // 🆕 ФУНКЦИИ ДЛЯ РЕЖИМА
+        // ========================
+
+        function showModeSelector() {
+            console.log('[LOBBY] Showing mode selector (user is host)');
+            document.getElementById('modeSelectorBox').style.display = 'block';
+            document.getElementById('modeDisplayBox').style.display = 'none';
+            document.getElementById('modeSelect').value = currentMode;
+        }
+
+        function showModeDisplay() {
+            console.log('[LOBBY] Showing mode display (user is not host)');
+            document.getElementById('modeSelectorBox').style.display = 'none';
+            document.getElementById('modeDisplayBox').style.display = 'block';
+        }
+
+        function updateModeDisplay() {
+            const modeDisplayValue = document.getElementById('modeDisplayValue');
+            
+            if (currentMode === 'creator') {
+                modeDisplayValue.textContent = '🎨 Режим Создатель';
+                modeDisplayValue.className = 'mode-display-value creator';
+            } else {
+                modeDisplayValue.textContent = '⚡ Классическая дуэль';
+                modeDisplayValue.className = 'mode-display-value classic';
+            }
+            
+            // Если не хост, показываем отображение режима
+            if (!isHost) {
+                showModeDisplay();
+            }
+        }
+
+        function changeMode() {
+            const newMode = document.getElementById('modeSelect').value;
+            
+            if (newMode === currentMode) {
+                return;  // Режим не изменился
+            }
+            
+            console.log('[LOBBY] Changing mode from', currentMode, 'to', newMode);
+            
+            socket.emit('set_lobby_mode', { 
+                lobby_id: lobbyId, 
+                mode: newMode 
+            });
+            
+            modeChanged = true;
+            currentMode = newMode;
+            
+            // Показываем уведомление
+            const msg = document.getElementById('statusMsg');
+            msg.textContent = newMode === 'creator' ? 
+                '🎨 Выбран режим Создатель' : 
+                '⚡ Выбрана классическая дуэль';
+            setTimeout(() => { msg.textContent = ''; }, 2000);
+        }
 
         // ========================
         // ФУНКЦИИ
