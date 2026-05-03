@@ -539,7 +539,7 @@
         let mainMap = null, guessMap = null;
         let selectedCoords = null, mainPlacemark = null, guessPlacemark = null;
         let panoramaPlayer = null, previewPlayer = null;
-        let timerInterval = null, timeLeft = 45;
+        let timerInterval = null, timeLeft = 60; // По умолчанию 60 секунд для выбора
         let mapExpanded = false, mapCollapsed = false;
 
         const guessMapFloat = document.getElementById('guessMapFloat');
@@ -593,7 +593,6 @@
             guessMapFloat.classList.toggle('expanded', mapExpanded);
             updateExpandIcon();
 
-            // Принудительно задаём размеры через inline-стили на время
             if (mapExpanded) {
                 guessMapFloat.style.width = '720px';
                 guessMapFloat.style.height = '520px';
@@ -680,6 +679,7 @@
 
         // ===== ФАЗА УГАДЫВАНИЯ =====
         socket.on('start_guessing_phase', (data) => {
+            console.log('[CREATE] Starting guessing phase, time_limit:', data.time_limit);
             phase = 'guessing';
             document.getElementById('mainMap').style.display = 'none';
             document.getElementById('gamePano').style.display = 'block';
@@ -690,7 +690,10 @@
             document.getElementById('opponentStatus').className = 'opponent-status thinking';
             hidePanoPreview();
             loadOpponentPanorama(data.lat, data.lon);
-            startTimer(60);
+
+            // Запускаем таймер с временем от сервера (120 секунд) или 120 по умолчанию
+            startTimer(data.time_limit || 120);
+
             setTimeout(() => { if (guessMap) guessMap.container.fitToViewport(); }, 400);
         });
 
@@ -750,6 +753,7 @@
 
                 const btn = document.getElementById('nextRoundBtn');
                 btn.textContent = data.is_last_round ? 'Завершить' : 'Следующий раунд →';
+                btn.style.display = 'block';
                 btn.disabled = false;
             }, 300);
         });
@@ -762,12 +766,18 @@
         }
 
         function resetForNextRound() {
-            phase = 'creating'; resultsMapsRow.style.display = 'flex';
+            phase = 'creating';
+            resultsMapsRow.style.display = 'flex';
             document.getElementById('mainMap').style.display = 'block';
-            document.getElementById('gamePano').style.display = 'none'; document.getElementById('gamePano').innerHTML = '';
+            document.getElementById('gamePano').style.display = 'none';
+            document.getElementById('gamePano').innerHTML = '';
             guessMapFloat.classList.remove('visible');
-            confirmBtn.classList.remove('hidden'); confirmBtn.disabled = true; confirmBtn.textContent = '✅ Подтвердить точку';
-            guessBtn.disabled = true; guessBtn.textContent = '🎯 Угадать'; guessMapHint.style.opacity = '1';
+            confirmBtn.classList.remove('hidden');
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '✅ Подтвердить точку';
+            guessBtn.disabled = true;
+            guessBtn.textContent = '🎯 Угадать';
+            guessMapHint.style.opacity = '1';
             document.getElementById('phasePill').textContent = 'Выберите точку';
             document.getElementById('opponentStatus').textContent = 'Соперник выбирает...';
             document.getElementById('opponentStatus').className = 'opponent-status thinking';
@@ -775,81 +785,187 @@
             if (guessPlacemark) { guessMap.geoObjects.remove(guessPlacemark); guessPlacemark = null; }
             if (panoramaPlayer) try { panoramaPlayer.destroy(); } catch(e) {} panoramaPlayer = null;
             selectedCoords = null;
-            mainMap.behaviors.enable('drag'); mainMap.behaviors.enable('scrollZoom');
-            startTimer(45);
+            mainMap.behaviors.enable('drag');
+            mainMap.behaviors.enable('scrollZoom');
+
+            const btn = document.getElementById('nextRoundBtn');
+            btn.style.display = 'block';
+
+            // Запускаем таймер выбора (60 секунд)
+            startTimer(60);
         }
 
-        // ===== ФИНИШ =====
-        // ===== ФИНИШ =====    
         // ===== ФИНИШ =====
         socket.on('duel_finished', (data) => {
             stopTimer();
             const myScore = data.total_scores[myUserId] || 0;
             const oppId = Object.keys(data.total_scores).find(id => id != myUserId);
             const oppScore = oppId ? (data.total_scores[oppId] || 0) : 0;
-            
+
             let title;
-            if (myScore > oppScore) title = '🏆 Вы победили!';      
+            if (myScore > oppScore) title = '🏆 Вы победили!';
             else if (oppScore > myScore) title = '😞 Вы проиграли';
             else title = '🤝 Ничья!';
-            
+
             resultsMapsRow.style.display = 'none';
             document.getElementById('resultModal').classList.add('visible');
             document.getElementById('resultTitle').textContent = title;
-            
+
             // Контейнер для кнопок
             let buttonsHtml = `
                 <p style="font-size:64px;font-family:'Bebas Neue',sans-serif;text-align:center;margin:20px 0;">
                     ${myScore} : ${oppScore}
                 </p>
             `;
-            
-            // 🆕 Всегда добавляем кнопку "В меню дуэлей"
+
+            // Всегда добавляем кнопку "В меню дуэлей"
             buttonsHtml += `
                 <button class="btn-next" onclick="window.location.href='/duel'">
                     📋 В меню дуэлей
                 </button>
             `;
-            
-            // 🆕 Если есть лобби - добавляем кнопку возврата в лобби
+
+            // Если есть лобби - добавляем кнопку возврата в лобби
             if (data.lobby_id) {
                 buttonsHtml += `
-                    <button class="btn-next" style="background: var(--green); margin-top: 8px;" 
+                    <button class="btn-next" style="background: var(--green); margin-top: 8px;"
                             onclick="window.location.href='/duel/lobby/${data.lobby_id}'">
                         🔄 Вернуться в лобби
                     </button>
                 `;
             }
-            
+
             document.getElementById('scoresTableContainer').innerHTML = buttonsHtml;
-            
-            // Скрываем стандартную кнопку nextRoundBtn, так как мы добавили свои
+
+            // Скрываем стандартную кнопку nextRoundBtn
             const btn = document.getElementById('nextRoundBtn');
             btn.style.display = 'none';
         });
 
-        // ===== ТАЙМЕР =====
+        // ===== ТАЙМЕР (ИСПРАВЛЕННАЯ ВЕРСИЯ) =====
         function startTimer(seconds) {
-            timeLeft = seconds; updateTimerDisplay(); clearInterval(timerInterval);
+            stopTimer(); // Останавливаем предыдущий таймер если есть
+            timeLeft = seconds;
+            updateTimerDisplay();
+
+            console.log(`[TIMER] Started timer for ${seconds}s in phase: ${phase}`);
+
             timerInterval = setInterval(() => {
-                timeLeft--; updateTimerDisplay();
-                if (timeLeft <= 0) { stopTimer(); if (phase === 'creating' && selectedCoords) confirmLocation(); else if (phase === 'guessing' && guessPlacemark) submitGuess(); }
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    stopTimer();
+                    handleTimeExpired();
+                }
             }, 1000);
         }
-        function stopTimer() { clearInterval(timerInterval); }
-        function updateTimerDisplay() {
-            const pill = document.getElementById('timerPill'); pill.textContent = timeLeft;
-            pill.classList.remove('safe','warn','danger');
-            if (timeLeft <= 10) pill.classList.add('danger'); else if (timeLeft <= 20) pill.classList.add('warn'); else pill.classList.add('safe');
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
         }
 
-        // ===== СОБЫТИЯ =====
-        socket.on('opponent_selected_location', () => { document.getElementById('opponentStatus').textContent = opponentName + ' выбрал точку'; document.getElementById('opponentStatus').className = 'opponent-status answered'; });
-        socket.on('opponent_guessed', () => { document.getElementById('opponentStatus').textContent = opponentName + ' сделал догадку'; document.getElementById('opponentStatus').className = 'opponent-status answered'; });
-        socket.on('error', (data) => alert(data.message));
-        socket.on('opponent_disconnected', () => { alert('Соперник отключился'); window.location.href = '/duel'; });
+        function updateTimerDisplay() {
+            const pill = document.getElementById('timerPill');
+            if (!pill) return;
 
-        startTimer(45);
+            pill.textContent = timeLeft;
+            pill.classList.remove('safe', 'warn', 'danger');
+
+            if (timeLeft <= 10) {
+                pill.classList.add('danger');
+            } else if (timeLeft <= 20) {
+                pill.classList.add('warn');
+            } else {
+                pill.classList.add('safe');
+            }
+        }
+
+        function handleTimeExpired() {
+            console.log(`[TIMER] Time expired in phase: ${phase}`);
+
+            if (phase === 'creating' || phase === 'waiting') {
+                // Время на выбор локации истекло
+                if (selectedCoords) {
+                    confirmLocation();
+                } else {
+                    // Если точка не выбрана - отправляем случайные координаты
+                    const randomLat = 55.751244 + (Math.random() - 0.5) * 0.1;
+                    const randomLon = 37.618423 + (Math.random() - 0.5) * 0.1;
+
+                    socket.emit('creator_location_selected', {
+                        duel_id: duelId,
+                        lat: randomLat,
+                        lon: randomLon
+                    });
+
+                    confirmBtn.disabled = true;
+                    confirmBtn.textContent = 'Время вышло';
+                    document.getElementById('opponentStatus').textContent = 'Время истекло';
+                    document.getElementById('opponentStatus').className = 'opponent-status waiting';
+                    phase = 'waiting';
+
+                    showNotification('Время вышло! Отправлены случайные координаты', 'error');
+                }
+            } else if (phase === 'guessing') {
+                // Время на угадывание истекло
+                if (guessPlacemark) {
+                    submitGuess();
+                } else {
+                    // Если догадки нет - отправляем null координаты
+                    socket.emit('submit_creator_guess', {
+                        duel_id: duelId,
+                        guess_lat: null,
+                        guess_lon: null
+                    });
+
+                    guessBtn.disabled = true;
+                    guessBtn.textContent = 'Время вышло';
+                    document.getElementById('opponentStatus').textContent = 'Время истекло';
+                    document.getElementById('opponentStatus').className = 'opponent-status waiting';
+
+                    showNotification('Время вышло! Догадка не отправлена', 'error');
+                }
+            }
+        }
+
+        // ===== ОБРАБОТКА СЕРВЕРНОГО ТАЙМАУТА =====
+        socket.on('time_expired', (data) => {
+            console.log('[CREATE] Server time expired:', data);
+            stopTimer();
+
+            if (data.phase === 'selection') {
+                showNotification('Время на выбор локации истекло', 'error');
+            } else if (data.phase === 'guessing') {
+                showNotification('Время на угадывание истекло', 'error');
+            }
+        });
+
+        // ===== СОБЫТИЯ =====
+        socket.on('opponent_selected_location', () => {
+            document.getElementById('opponentStatus').textContent = opponentName + ' выбрал точку';
+            document.getElementById('opponentStatus').className = 'opponent-status answered';
+        });
+
+        socket.on('opponent_guessed', () => {
+            document.getElementById('opponentStatus').textContent = opponentName + ' сделал догадку';
+            document.getElementById('opponentStatus').className = 'opponent-status answered';
+        });
+
+        socket.on('error', (data) => alert(data.message));
+
+        socket.on('opponent_disconnected', () => {
+            alert('Соперник отключился');
+            window.location.href = '/duel';
+        });
+
+        // Запускаем таймер выбора (60 секунд) только после инициализации карт
+        ymaps.ready(() => {
+            startTimer(60);
+        });
     </script>
 </body>
 </html>

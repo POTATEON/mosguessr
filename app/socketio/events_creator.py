@@ -3,8 +3,8 @@ from flask import session, request
 from flask_socketio import emit
 from app.extensions import socketio, db
 from app.models.duel import Duel
-from .state import duel_rooms
-from .creator_manager import save_creator_location, save_creator_guess
+from .state import duel_rooms, creator_locations
+from .creator_manager import save_creator_location, save_creator_guess, _creator_selection_timer
 from .duel_manager import finish_duel
 
 
@@ -56,3 +56,7 @@ def handle_next_creator_round(data):
     else:
         duel.current_round += 1
         db.session.commit()
+
+        # Запускаем новый таймер для фазы выбора
+        app = current_app._get_current_object()
+        socketio.start_background_task(_creator_selection_timer, app, duel_id, duel.current_round)

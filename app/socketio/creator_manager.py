@@ -28,8 +28,40 @@ def create_creator_duel(player1, player2, lobby_id=None):
             'opponent_id': opponent['user_id'],
             'my_user_id': player['user_id'],
             'mode': 'creator',
-            'lobby_id': lobby_id
+            'lobby_id': lobby_id,
+            'time_limit': 60  # Добавляем лимит времени
         }, room=player['sid'])
+
+    # Запускаем таймер для фазы выбора (60 секунд)
+    app = current_app._get_current_object()
+    socketio.start_background_task(_creator_selection_timer, app, duel.id, 1)
+
+
+def _creator_selection_timer(app, duel_id, round_num):
+    """Таймер для фазы выбора локации (60 секунд)"""
+    socketio.sleep(60)
+    with app.app_context():
+        duel = db.session.get(Duel, duel_id)
+        if duel and duel.status == 'in_progress' and duel.current_round == round_num:
+            # Проверяем, не началась ли уже фаза угадывания
+            if len(creator_locations.get(duel_id, {})) < 2:
+                locations = creator_locations.get(duel_id, {})
+
+                # Для игроков, которые не выбрали локацию
+                for user_id in [duel.player1_id, duel.player2_id]:
+                    if user_id not in locations:
+                        # Генерируем случайные координаты в Москве
+                        import random
+                        random_lat = 55.751244 + (random.random() - 0.5) * 0.1
+                        random_lon = 37.618423 + (random.random() - 0.5) * 0.1
+
+                        # Сохраняем случайную локацию
+                        save_creator_location(duel_id, user_id, random_lat, random_lon)
+
+                        send_to_player(duel_id, user_id, 'time_expired', {
+                            'phase': 'selection',
+                            'message': 'Время на выбор локации истекло. Выбрана случайная локация.'
+                        })
 
 
 def save_creator_location(duel_id, user_id, lat, lon):
@@ -56,25 +88,46 @@ def _start_guessing_phase(duel_id):
     p1_id, p2_id = duel.player1_id, duel.player2_id
 
     send_to_player(duel_id, p1_id, 'start_guessing_phase', {
-        'lat': locations[p2_id]['lat'], 'lon': locations[p2_id]['lon'], 'round_number': duel.current_round
+        'lat': locations[p2_id]['lat'], 'lon': locations[p2_id]['lon'],
+        'round_number': duel.current_round,
+        'time_limit': 120  # Отправляем лимит времени на клиент
     })
     send_to_player(duel_id, p2_id, 'start_guessing_phase', {
-        'lat': locations[p1_id]['lat'], 'lon': locations[p1_id]['lon'], 'round_number': duel.current_round
+        'lat': locations[p1_id]['lat'], 'lon': locations[p1_id]['lon'],
+        'round_number': duel.current_round,
+        'time_limit': 120  # Отправляем лимит времени на клиент
     })
 
     creator_guesses[duel_id] = {}
     creator_timers[duel_id] = {'round': duel.current_round, 'started': datetime.datetime.utcnow()}
 
     app = current_app._get_current_object()
-    socketio.start_background_task(_creator_timer_task, app, duel_id, duel.current_round)
+    # Запускаем таймер на 120 секунд (2 минуты) для фазы угадывания
+    socketio.start_background_task(_creator_guessing_timer, app, duel_id, duel.current_round)
 
 
-def _creator_timer_task(app, duel_id, round_num):
-    socketio.sleep(60)
+def _creator_guessing_timer(app, duel_id, round_num):
+    """Таймер для фазы угадывания (120 секунд)"""
+    socketio.sleep(120)
     with app.app_context():
         duel = db.session.get(Duel, duel_id)
         if duel and duel.status == 'in_progress' and duel.current_round == round_num:
-            _calculate_creator_results(duel_id)
+            # Проверяем, есть ли уже результаты
+            if len(creator_guesses.get(duel_id, {})) < 2:
+                # Кто-то не успел сделать догадку
+                current_guesses = creator_guesses.get(duel_id, {})
+
+                # Для тех, кто не сделал догадку - ставим null координаты
+                for user_id in [duel.player1_id, duel.player2_id]:
+                    if user_id not in current_guesses:
+                        creator_guesses[duel_id][user_id] = {'lat': None, 'lon': None}
+                        send_to_player(duel_id, user_id, 'time_expired', {
+                            'phase': 'guessing',
+                            'message': 'Время на угадывание истекло'
+                        })
+
+                # Принудительно считаем результаты
+                _calculate_creator_results(duel_id)
 
 
 def save_creator_guess(duel_id, user_id, guess_lat, guess_lon):
@@ -111,7 +164,7 @@ def _calculate_creator_results(duel_id):
         distance_km = None
         score = 0
 
-        if opponent_location and user_guess:
+        if opponent_location and user_guess and user_guess.get('lat') is not None:
             distance = haversine(opponent_location['lat'], opponent_location['lon'],
                                  user_guess['lat'], user_guess['lon'])
             distance_km = distance / 1000.0
@@ -134,7 +187,8 @@ def _calculate_creator_results(duel_id):
         opponent_id = duel.player2_id if user_id == duel.player1_id else duel.player1_id
 
         result_data = {
-            'opponent_lat': locations[opponent_id]['lat'], 'opponent_lon': locations[opponent_id]['lon'],
+            'opponent_lat': locations[opponent_id]['lat'],
+            'opponent_lon': locations[opponent_id]['lon'],
             'my_location': {'lat': locations[user_id]['lat'], 'lon': locations[user_id]['lon']},
             'my_guess': {'lat': guesses[user_id]['lat'], 'lon': guesses[user_id]['lon']} if user_id in guesses else None,
             'enemy_guess': {'lat': guesses[opponent_id]['lat'], 'lon': guesses[opponent_id]['lon']} if opponent_id in guesses else None,
